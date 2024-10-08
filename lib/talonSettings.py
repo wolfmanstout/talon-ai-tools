@@ -12,6 +12,7 @@ mod.list("customPrompt", desc="Custom user-defined GPT prompts")
 mod.list("modelPrompt", desc="GPT Prompts")
 mod.list("model", desc="The name of the model")
 mod.list("modelDestination", desc="What to do after returning the model response")
+mod.list("modelAction", desc="What to do after returning the model response")
 mod.list("modelSource", desc="Where to get the text from for the GPT")
 
 
