@@ -1,6 +1,8 @@
 import base64
 import json
 import os
+import platform
+import subprocess
 from typing import Literal, Optional
 
 import requests
@@ -174,25 +176,65 @@ def send_request(
     if tools is not None:
         data["tools"] = tools
 
-    url: str = settings.get("user.model_endpoint")  # type: ignore
-    headers = {"Content-Type": "application/json"}
-    # If the model endpoint is Azure, we need to use a different header
-    if "azure.com" in url:
-        headers["api-key"] = TOKEN
-    else:
-        headers["Authorization"] = f"Bearer {TOKEN}"
+    # Use llm command if all features are supported.
+    if tools is None and len(content) == 1 and "text" in prompt:
+        # Build command.
+        command = ["llm"]
+        command.append(prompt["text"])
+        model = settings.get("user.openai_model")
+        command.extend(["-m", model])  # Model flag
+        # Set temperature if supported.
+        if model.startswith("gpt"):
+            temperature = settings.get("user.model_temperature")
+            command.extend(["-o", "temperature", str(temperature)])
+        if system_messages:
+            command.extend(
+                ["-s", "\n\n".join([msg["text"] for msg in system_messages])]
+            )
 
-    raw_response = requests.post(url, headers=headers, data=json.dumps(data))
+        if GPTState.debug_enabled:
+            print(command)
 
-    match raw_response.status_code:
-        case 200:
+        # Execute command and capture output.
+        try:
+            result = subprocess.run(
+                command,
+                text=True,
+                capture_output=True,
+                check=True,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                # Talon changes locale.getpreferredencoding(False) to "utf-8" on
+                # Windows, but the llm command responds with cp1252 encoding.
+                encoding="cp1252" if platform.system() == "Windows" else None,
+            )
             notify("GPT Task Completed")
-            resp = raw_response.json()["choices"][0]["message"]["content"].strip()
+            resp = result.stdout.strip()
             formatted_resp = strip_markdown(resp)
             response = format_message(formatted_resp)
-        case _:
-            notify("GPT Failure: Check the Talon Log")
-            raise Exception(raw_response.json())
+        except subprocess.CalledProcessError as e:
+            notify(f"GPT Failure: {str(e)}")
+            raise e
+
+    else:
+        url: str = settings.get("user.model_endpoint")  # type: ignore
+        headers = {"Content-Type": "application/json"}
+        # If the model endpoint is Azure, we need to use a different header
+        if "azure.com" in url:
+            headers["api-key"] = TOKEN
+        else:
+            headers["Authorization"] = f"Bearer {TOKEN}"
+
+        raw_response = requests.post(url, headers=headers, data=json.dumps(data))
+
+        match raw_response.status_code:
+            case 200:
+                notify("GPT Task Completed")
+                resp = raw_response.json()["choices"][0]["message"]["content"].strip()
+                formatted_resp = strip_markdown(resp)
+                response = format_message(formatted_resp)
+            case _:
+                notify("GPT Failure: Check the Talon Log")
+                raise Exception(raw_response.json())
 
     if GPTState.thread_enabled:
         GPTState.push_thread(current_request)
