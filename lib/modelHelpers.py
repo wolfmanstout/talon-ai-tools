@@ -6,7 +6,7 @@ import subprocess
 from typing import Literal, Optional
 
 import requests
-from talon import actions, app, clip, settings
+from talon import actions, clip, settings
 
 from ..lib.pureHelpers import strip_markdown
 from .modelState import GPTState
@@ -39,10 +39,10 @@ def thread_to_string(chats: list[GPTMessage]) -> str:
 
 def notify(message: str):
     """Send a notification to the user. Defaults the Andreas' notification system if you have it installed"""
-    try:
-        actions.user.notify(message)
-    except Exception:
-        app.notify(message)
+    # try:
+    #     actions.user.notify(message)
+    # except Exception:
+    #     app.notify(message)
     # Log in case notifications are disabled
     print(message)
 
