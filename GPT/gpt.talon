@@ -14,9 +14,6 @@
 {user.model} [<user.continueThread>] {user.modelAction} use [{user.modelSource}] <user.text>$:
     user.gpt_apply_prompt(text, modelSource or "", modelAction, continueThread or "")
 
-{user.model} [<user.continueThread>] {user.modelAction} respond <user.text>$:
-    user.gpt_apply_prompt("ask " + text, "", modelAction, continueThread or "")
-
 # Select the last GPT response so you can edit it further
 {user.model} take response: user.gpt_select_last()
 
