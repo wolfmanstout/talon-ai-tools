@@ -97,6 +97,7 @@ def send_request(
     content_to_process: Optional[GPTMessageItem],
     tools: Optional[list[dict[str, str]]] = None,
     destination: str = "",
+    continue_thread: bool = False,
 ):
     """Generate run a GPT request and return the response"""
     notification = "GPT Task Started"
@@ -180,6 +181,8 @@ def send_request(
     if tools is None and len(content) == 1 and "text" in prompt:
         # Build command.
         command = ["llm"]
+        if continue_thread:
+            command.append("-c")
         command.append(prompt["text"])
         model = settings.get("user.openai_model")
         command.extend(["-m", model])  # Model flag

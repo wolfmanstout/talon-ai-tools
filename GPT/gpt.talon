@@ -8,14 +8,14 @@
 # {user.model} <user.modelPrompt> [{user.modelSource}] [{user.modelDestination}]$:
 #     user.gpt_apply_prompt(modelPrompt, modelSource or "", modelDestination or "")
 
-{user.model} {user.modelAction} <user.modelSimplePrompt> [{user.modelSource}]$:
-    user.gpt_apply_prompt(modelSimplePrompt, modelSource or "", modelAction)
+{user.model} [<user.continueThread>] {user.modelAction} <user.modelSimplePrompt> [{user.modelSource}]$:
+    user.gpt_apply_prompt(modelSimplePrompt, modelSource or "", modelAction, continueThread or "")
 
-{user.model} {user.modelAction} use [{user.modelSource}] <user.text>$:
-    user.gpt_apply_prompt(text, modelSource or "", modelAction)
+{user.model} [<user.continueThread>] {user.modelAction} use [{user.modelSource}] <user.text>$:
+    user.gpt_apply_prompt(text, modelSource or "", modelAction, continueThread or "")
 
-{user.model} {user.modelAction} respond <user.text>$:
-    user.gpt_apply_prompt("ask " + text, "", modelAction)
+{user.model} [<user.continueThread>] {user.modelAction} respond <user.text>$:
+    user.gpt_apply_prompt("ask " + text, "", modelAction, continueThread or "")
 
 # Select the last GPT response so you can edit it further
 {user.model} take response: user.gpt_select_last()

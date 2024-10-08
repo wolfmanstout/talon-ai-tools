@@ -29,13 +29,14 @@ def gpt_query(
     prompt: GPTMessageItem,
     text_to_process: Optional[GPTMessageItem],
     destination: str = "",
+    continue_thread: bool = False,
 ):
     """Send a prompt to the GPT API and return the response"""
 
     # Reset state before pasting
     GPTState.last_was_pasted = False
 
-    response = send_request(prompt, text_to_process, None, destination)
+    response = send_request(prompt, text_to_process, None, destination, continue_thread)
     GPTState.last_response = extract_message(response)
     return response
 
@@ -141,7 +142,12 @@ class UserActions:
         for _ in lines[0]:
             actions.edit.extend_left()
 
-    def gpt_apply_prompt(prompt: str, source: str = "", destination: str = ""):
+    def gpt_apply_prompt(
+        prompt: str,
+        source: str = "",
+        destination: str = "",
+        continue_thread: str = "",
+    ) -> GPTMessageItem:
         """Apply an arbitrary prompt to arbitrary text"""
 
         text_to_process: GPTMessageItem = actions.user.gpt_get_source_text(source)
@@ -157,7 +163,12 @@ class UserActions:
             text_to_process = None  # type: ignore
             prompt = prompt.removeprefix("ask ")
 
-        response = gpt_query(format_message(prompt), text_to_process, destination)
+        response = gpt_query(
+            format_message(prompt),
+            text_to_process,
+            destination,
+            continue_thread == "continue",
+        )
 
         actions.user.gpt_insert_response(response, destination)
         return response
