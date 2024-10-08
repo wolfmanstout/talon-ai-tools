@@ -107,7 +107,6 @@ def send_request(
         notification += ", Threading Enabled"
 
     notify(notification)
-    TOKEN = get_token()
 
     language = actions.code.language()
     language_context = (
@@ -177,8 +176,11 @@ def send_request(
     if tools is not None:
         data["tools"] = tools
 
+    model_endpoint: str = settings.get("user.model_endpoint")  # type: ignore
     # Use llm command if all features are supported.
-    if tools is None and len(content) == 1 and "text" in prompt:
+    if model_endpoint == "llm":
+        if tools is not None or len(content) > 1 or content[0] != prompt:
+            notify("GPT Warning: llm command does not support all features.")
         # Build command.
         command = ["llm"]
         if continue_thread:
@@ -219,15 +221,17 @@ def send_request(
             raise e
 
     else:
-        url: str = settings.get("user.model_endpoint")  # type: ignore
         headers = {"Content-Type": "application/json"}
+        token = get_token()
         # If the model endpoint is Azure, we need to use a different header
-        if "azure.com" in url:
-            headers["api-key"] = TOKEN
+        if "azure.com" in model_endpoint:
+            headers["api-key"] = token
         else:
-            headers["Authorization"] = f"Bearer {TOKEN}"
+            headers["Authorization"] = f"Bearer {token}"
 
-        raw_response = requests.post(url, headers=headers, data=json.dumps(data))
+        raw_response = requests.post(
+            model_endpoint, headers=headers, data=json.dumps(data)
+        )
 
         match raw_response.status_code:
             case 200:
