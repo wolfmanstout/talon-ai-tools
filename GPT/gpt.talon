@@ -11,8 +11,17 @@
 {user.model} [<user.continueThread>] {user.modelAction} <user.modelSimplePrompt> [{user.modelSource}]$:
     user.gpt_apply_prompt(modelSimplePrompt, modelSource or "", modelAction, continueThread or "")
 
-{user.model} [<user.continueThread>] {user.modelAction} use [{user.modelSource}] <user.text>$:
-    user.gpt_apply_prompt(text, modelSource or "", modelAction, continueThread or "")
+# Alternative ordering (for consistency with later variants).
+{user.model} [<user.continueThread>] {user.modelAction} with {user.modelSource} <user.modelSimplePrompt>$:
+    user.gpt_apply_prompt(modelSimplePrompt, modelSource, modelAction, continueThread or "")
+
+# Perform arbitrary prompt. If text is selected, it will be provided.
+{user.model} [<user.continueThread>] {user.modelAction} <user.text>$:
+    user.gpt_apply_prompt(text, "", modelAction, continueThread or "")
+
+# Perform arbitrary prompt on something other than the selected text.
+{user.model} [<user.continueThread>] {user.modelAction} with {user.modelSource} <user.text>$:
+    user.gpt_apply_prompt(text, modelSource, modelAction, continueThread or "")
 
 # Select the last GPT response so you can edit it further
 {user.model} take response: user.gpt_select_last()
