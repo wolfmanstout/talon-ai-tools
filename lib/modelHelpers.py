@@ -6,7 +6,7 @@ import subprocess
 from typing import Literal, Optional
 
 import requests
-from talon import actions, clip, settings
+from talon import actions, app, clip, settings
 
 from ..lib.pureHelpers import strip_markdown
 from .modelState import GPTState
@@ -39,10 +39,10 @@ def thread_to_string(chats: list[GPTMessage]) -> str:
 
 def notify(message: str):
     """Send a notification to the user. Defaults the Andreas' notification system if you have it installed"""
-    # try:
-    #     actions.user.notify(message)
-    # except Exception:
-    #     app.notify(message)
+    try:
+        actions.user.notify(message)
+    except Exception:
+        app.notify(message)
     # Log in case notifications are disabled
     print(message)
 
@@ -106,7 +106,8 @@ def send_request(
     if GPTState.thread_enabled:
         notification += ", Threading Enabled"
 
-    notify(notification)
+    if settings.get("user.model_verbose_notifications"):
+        notify(notification)
 
     language = actions.code.language()
     language_context = (
@@ -182,7 +183,7 @@ def send_request(
         if tools is not None or len(content) > 1 or content[0] != prompt:
             notify("GPT Warning: llm command does not support all features.")
         # Build command.
-        command = ["llm"]
+        command = [settings.get("user.model_llm_path")]
         if continue_thread:
             command.append("-c")
         command.append(prompt["text"])
@@ -207,12 +208,15 @@ def send_request(
                 text=True,
                 capture_output=True,
                 check=True,
-                creationflags=subprocess.CREATE_NO_WINDOW,
+                creationflags=(
+                    subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0
+                ),
                 # Talon changes locale.getpreferredencoding(False) to "utf-8" on
                 # Windows, but the llm command responds with cp1252 encoding.
                 encoding="cp1252" if platform.system() == "Windows" else None,
             )
-            notify("GPT Task Completed")
+            if settings.get("user.model_verbose_notifications"):
+                notify("GPT Task Completed")
             resp = result.stdout.strip()
             formatted_resp = strip_markdown(resp)
             response = format_message(formatted_resp)
@@ -235,7 +239,8 @@ def send_request(
 
         match raw_response.status_code:
             case 200:
-                notify("GPT Task Completed")
+                if settings.get("user.model_verbose_notifications"):
+                    notify("GPT Task Completed")
                 resp = raw_response.json()["choices"][0]["message"]["content"].strip()
                 formatted_resp = strip_markdown(resp)
                 response = format_message(formatted_resp)
