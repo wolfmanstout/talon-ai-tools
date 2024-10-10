@@ -29,6 +29,7 @@ def gpt_query(
     prompt: GPTMessageItem,
     text_to_process: Optional[GPTMessageItem],
     destination: str = "",
+    model: str = "",
     continue_thread: bool = False,
 ):
     """Send a prompt to the GPT API and return the response"""
@@ -36,7 +37,9 @@ def gpt_query(
     # Reset state before pasting
     GPTState.last_was_pasted = False
 
-    response = send_request(prompt, text_to_process, None, destination, continue_thread)
+    response = send_request(
+        prompt, text_to_process, None, destination, model, continue_thread
+    )
     GPTState.last_response = extract_message(response)
     return response
 
@@ -146,6 +149,7 @@ class UserActions:
         prompt: str,
         source: str = "",
         destination: str = "",
+        model: str = "",
         continue_thread: str = "",
     ) -> GPTMessageItem:
         """Apply an arbitrary prompt to arbitrary text"""
@@ -167,6 +171,7 @@ class UserActions:
             format_message(prompt),
             text_to_process,
             destination,
+            model if model != "model" else "",
             continue_thread == "continue",
         )
 

@@ -97,9 +97,11 @@ def send_request(
     content_to_process: Optional[GPTMessageItem],
     tools: Optional[list[dict[str, str]]] = None,
     destination: str = "",
+    model: str = "",
     continue_thread: bool = False,
 ):
     """Generate run a GPT request and return the response"""
+    model = model or settings.get("user.openai_model")
     notification = "GPT Task Started"
     if len(GPTState.context) > 0:
         notification += ": Reusing Stored Context"
@@ -187,7 +189,6 @@ def send_request(
         if continue_thread:
             command.append("-c")
         command.append(prompt["text"])
-        model = settings.get("user.openai_model")
         command.extend(["-m", model])  # Model flag
         # Set temperature if supported.
         if model.startswith("gpt"):
