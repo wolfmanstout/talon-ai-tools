@@ -3,8 +3,8 @@ list: user.model
 
 # The default model name
 model: model
-gem pro: gemini-1.5-pro-002
-gem flash: gemini-1.5-flash-002
-claude: claude-3-sonnet
+gem pro: gemini-1.5-pro-latest
+gem flash: gemini-1.5-flash-latest
+claude: claude-3.5-sonnet
 mini: 4o-mini
 g p t: 4o
