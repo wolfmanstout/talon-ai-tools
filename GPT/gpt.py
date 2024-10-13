@@ -313,6 +313,9 @@ class UserActions:
             case "paste":
                 GPTState.last_was_pasted = True
                 actions.user.paste(message_text_no_images)
+            case "diff":
+                actions.user.draft_editor_open_diff(new=message_text_no_images)
+
             # If the user doesn't specify a method assume they want to paste.
             # However if they didn't specify a method when the confirmation gui
             # is showing, assume they don't want anything to be inserted
