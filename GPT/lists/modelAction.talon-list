@@ -45,5 +45,8 @@ paste draft: chain
 # Insert the response as a snippet with placeholders (only works in vscode)
 snip: snip
 
+# Open up the draft editor and paste in the result
+draft: draft
+
 # Open a diff editor comparing the result to the prompt
 diff: diff
