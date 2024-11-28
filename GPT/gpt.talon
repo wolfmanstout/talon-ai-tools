@@ -20,12 +20,12 @@ mode: user.dictation_command
     user.gpt_apply_prompt(modelSimplePrompt, modelSource, modelAction, model, continueThread or "")
 
 # Perform arbitrary prompt. If text is selected, it will be provided.
-{user.model} [<user.continueThread>] {user.modelAction} <user.text>$:
-    user.gpt_apply_prompt(text, "", modelAction, model, continueThread or "")
+{user.model} [<user.continueThread>] {user.modelAction} <user.prose>$:
+    user.gpt_apply_prompt(prose, "", modelAction, model, continueThread or "")
 
 # Perform arbitrary prompt on something other than the selected text.
-{user.model} [<user.continueThread>] {user.modelAction} with {user.modelSource} <user.text>$:
-    user.gpt_apply_prompt(text, modelSource, modelAction, model, continueThread or "")
+{user.model} [<user.continueThread>] {user.modelAction} with {user.modelSource} <user.prose>$:
+    user.gpt_apply_prompt(prose, modelSource, modelAction, model, continueThread or "")
 
 # Select the last GPT response so you can edit it further
 {user.model} take response: user.gpt_select_last()
