@@ -4,7 +4,7 @@ list: user.model
 # The default model name
 model: model
 gem pro: gemini-1.5-pro-latest
-gem flash: gemini-1.5-flash-latest
+gem flash: gemini-2.0-flash-exp
 claude: claude-3.5-sonnet
 mini: 4o-mini
 g p t: 4o
