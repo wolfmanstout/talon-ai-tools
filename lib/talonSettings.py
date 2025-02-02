@@ -14,6 +14,7 @@ mod.list("model", desc="The name of the model")
 mod.list("modelDestination", desc="What to do after returning the model response")
 mod.list("modelAction", desc="What to do after returning the model response")
 mod.list("modelSource", desc="Where to get the text from for the GPT")
+mod.list("modelThreadOption", desc="Which conversation thread to continue")
 
 
 # model prompts can be either static and predefined by this repo or custom outside of it
@@ -28,11 +29,6 @@ def modelPrompt(matched_prompt) -> str:
 @mod.capture(rule="{user.staticPrompt} | {user.customPrompt}")
 def modelSimplePrompt(matched_prompt) -> str:
     return str(matched_prompt)
-
-
-@mod.capture(rule="and")
-def continueThread(m) -> str:
-    return "continue"
 
 
 mod.setting(

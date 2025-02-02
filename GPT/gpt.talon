@@ -5,27 +5,20 @@ mode: user.dictation_command
 # Shows the list of available prompts
 {user.model} help$: user.gpt_help()
 
-# # Runs a model prompt on the selected text; inserts with paste by default
-# #   Example: `model fix grammar below` -> Fixes the grammar of the selected text and pastes below
-# #   Example: `model explain this` -> Explains the selected text and pastes in place
-# #   Example: `model fix grammar clip to browser` -> Fixes the grammar of the text on the clipboard and opens in browser`
-# {user.model} <user.modelPrompt> [{user.modelSource}] [{user.modelDestination}]$:
-#     user.gpt_apply_prompt(modelPrompt, modelSource or "", modelDestination or "")
+# Runs a model prompt on the selected text or other modelSource and performs modelAction on the output.
+#   Example: `model paste make my email more tactful` -> Makes the selected text more tactful and pastes in place
+#   Example: `model paste with clip address email to alice instead of bob` -> Rewrites the copied text and pastes it
+#   Example: `model show what is the meaning of life` -> Shows the meaning of life in an overlay
+#   Example: `model and show distill that to a number` -> (Following the previous prompt) shows the distilled meaning of life as a number in an overlay
+{user.model} [{user.modelThreadOption}] {user.modelAction} [with {user.modelSource}] <user.prose>$:
+    user.gpt_apply_prompt(prose, modelSource or "", modelAction, model, modelThreadOption or "")
 
-{user.model} [<user.continueThread>] {user.modelAction} <user.modelSimplePrompt> [{user.modelSource}]$:
-    user.gpt_apply_prompt(modelSimplePrompt, modelSource or "", modelAction, model, continueThread or "")
-
-# Alternative ordering (for consistency with later variants).
-{user.model} [<user.continueThread>] {user.modelAction} with {user.modelSource} <user.modelSimplePrompt>$:
-    user.gpt_apply_prompt(modelSimplePrompt, modelSource, modelAction, model, continueThread or "")
-
-# Perform arbitrary prompt. If text is selected, it will be provided.
-{user.model} [<user.continueThread>] {user.modelAction} <user.prose>$:
-    user.gpt_apply_prompt(prose, "", modelAction, model, continueThread or "")
-
-# Perform arbitrary prompt on something other than the selected text.
-{user.model} [<user.continueThread>] {user.modelAction} with {user.modelSource} <user.prose>$:
-    user.gpt_apply_prompt(prose, modelSource, modelAction, model, continueThread or "")
+# Same as above, except using a saved prompt. Allows for alternative terse syntax for providing modelSource after the prompt.
+#   Example: `model paste below fix grammar` -> Fixes the grammar of the selected text and pastes below
+#   Example: `model paste explain` -> Explains the selected text and pastes in place
+#   Example: `model show browser fix grammar clip` -> Fixes the grammar of the text on the clipboard and opens in browser`
+{user.model} [{user.modelThreadOption}] {user.modelAction} ([with {user.modelSource}] <user.modelSimplePrompt> | <user.modelSimplePrompt> {user.modelSource})$:
+    user.gpt_apply_prompt(modelSimplePrompt, modelSource or "", modelAction, model, modelThreadOption or "")
 
 # Select the last GPT response so you can edit it further
 {user.model} take response: user.gpt_select_last()
