@@ -1,7 +1,7 @@
 list: user.modelAction
 -
 
-# A list of adjectives/adverbs describing how the result of the GPT query should be returned
+# Equivalent to modelDestination, except expressed as an action verb.
 
 # paste in place
 paste: paste

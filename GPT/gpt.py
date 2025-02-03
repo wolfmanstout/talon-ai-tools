@@ -150,7 +150,7 @@ class UserActions:
         source: str = "",
         destination: str = "",
         model: str = "",
-        continue_thread: str = "",
+        model_thread_option: str = "",
     ) -> GPTMessageItem:
         """Apply an arbitrary prompt to arbitrary text"""
 
@@ -166,7 +166,7 @@ class UserActions:
             text_to_process,
             destination,
             model if model != "model" else "",
-            continue_thread == "continueMostRecent",
+            model_thread_option == "continueMostRecent",
         )
 
         actions.user.gpt_insert_response(response, destination)
