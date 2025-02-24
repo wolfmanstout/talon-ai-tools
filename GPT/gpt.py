@@ -38,7 +38,7 @@ def gpt_query(
     GPTState.last_was_pasted = False
 
     response = send_request(
-        prompt, text_to_process, None, destination, model, continue_thread
+        prompt, text_to_process, destination, model, continue_thread
     )
     GPTState.last_response = extract_message(response)
     return response

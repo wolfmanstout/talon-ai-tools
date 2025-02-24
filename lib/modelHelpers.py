@@ -95,7 +95,6 @@ def format_clipboard() -> GPTMessageItem:
 def send_request(
     prompt: GPTMessageItem,
     content_to_process: Optional[GPTMessageItem],
-    tools: Optional[list[dict[str, str]]] = None,
     destination: str = "",
     model: str = "",
     continue_thread: bool = False,
@@ -123,109 +122,119 @@ def send_request(
         if destination == "snip"
         else None
     )
-
-    system_messages: list[GPTMessageItem] = [
-        {"type": "text", "text": item}
-        for item in [
-            settings.get("user.model_system_prompt"),
-            language_context,
-            application_context,
-            snippet_context,
+    system_message = "\n\n".join(
+        [
+            item
+            for item in [
+                settings.get("user.model_system_prompt"),
+                language_context,
+                application_context,
+                snippet_context,
+            ]
+            + actions.user.gpt_additional_user_context()
+            + [context.get("text") for context in GPTState.context]
+            if item
         ]
-        + actions.user.gpt_additional_user_context()
-        if item is not None
-    ]
-
-    system_messages += GPTState.context
-
-    content: list[GPTMessageItem] = []
-    if content_to_process is not None:
-        if content_to_process["type"] == "image_url":
-            image = content_to_process
-            # If we are processing an image, we have
-            # to add it as a second message
-            content = [prompt, image]
-        elif content_to_process["type"] == "text":
-            # If we are processing text content, just
-            # add the text on to the same message instead
-            # of splitting it into multiple messages
-            prompt["text"] = (
-                prompt["text"] + '\n\n"""' + content_to_process["text"] + '"""'  # type: ignore a Prompt has to be of type text
-            )
-            content = [prompt]
-    else:
-        # If there isn't any content to process,
-        # we just use the prompt and nothing else
-        content = [prompt]
-
-    current_request: GPTMessage = {
-        "role": "user",
-        "content": content,
-    }
-
-    data = {
-        "messages": [
-            format_messages("system", system_messages),
-        ]
-        + GPTState.thread
-        + [current_request],
-        "max_tokens": 2024,
-        "temperature": settings.get("user.model_temperature"),
-        "n": 1,
-        "model": settings.get("user.openai_model"),
-    }
-    if GPTState.debug_enabled:
-        print(data)
-    if tools is not None:
-        data["tools"] = tools
+    )
+    if content_to_process and content_to_process["type"] == "text":
+        # If we are processing text content, just
+        # add the text on to the same message instead
+        # of splitting it into multiple messages
+        prompt["text"] = (
+            prompt["text"] + '\n\n"""' + content_to_process["text"] + '"""'  # type: ignore a Prompt has to be of type text
+        )
 
     model_endpoint: str = settings.get("user.model_endpoint")  # type: ignore
     # Use llm command if all features are supported.
     if model_endpoint == "llm":
-        if tools is not None or len(content) > 1 or content[0] != prompt:
-            notify("GPT Warning: llm command does not support all features.")
         # Build command.
-        command = [settings.get("user.model_llm_path")]
+        command: list[str] = [settings.get("user.model_llm_path")]  # type: ignore
         if continue_thread:
             command.append("-c")
-        command.append(prompt["text"])
+        command.append(prompt["text"])  # type: ignore
+        cmd_input: bytes | None = None
+        if content_to_process and content_to_process["type"] == "image_url":
+            img_url: str = content_to_process["image_url"]["url"]  # type: ignore
+            if img_url.startswith("data:"):
+                command.extend(["-a", "-"])
+                base64_data: str = img_url.split(",", 1)[1]
+                cmd_input = base64.b64decode(base64_data)
+            else:
+                command.extend(["-a", img_url])
         command.extend(["-m", model])  # Model flag
         # Set temperature if supported.
         if model.startswith("gpt"):
             temperature = settings.get("user.model_temperature")
             command.extend(["-o", "temperature", str(temperature)])
-        if system_messages:
-            command.extend(
-                ["-s", "\n\n".join([msg["text"] for msg in system_messages])]
-            )
+        if system_message:
+            command.extend(["-s", system_message])
 
         if GPTState.debug_enabled:
             print(command)
 
         # Execute command and capture output.
+        # Talon changes locale.getpreferredencoding(False) to "utf-8" on
+        # Windows, but the llm command responds with cp1252 encoding.
+        output_encoding = "cp1252" if platform.system() == "Windows" else "utf-8"
         try:
             result = subprocess.run(
                 command,
-                text=True,
+                input=cmd_input,
                 capture_output=True,
                 check=True,
                 creationflags=(
                     subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0
                 ),
-                # Talon changes locale.getpreferredencoding(False) to "utf-8" on
-                # Windows, but the llm command responds with cp1252 encoding.
-                encoding="cp1252" if platform.system() == "Windows" else None,
             )
             if settings.get("user.model_verbose_notifications"):
                 notify("GPT Task Completed")
-            resp = result.stdout.strip()
+            resp = result.stdout.decode(output_encoding).strip()
             formatted_resp = strip_markdown(resp)
             response = format_message(formatted_resp)
         except subprocess.CalledProcessError as e:
-            notify(f"GPT Failure: {str(e)}")
+            error_msg = e.stderr.decode(output_encoding).strip() if e.stderr else str(e)
+            notify(f"GPT Failure: {error_msg}")
+            raise e
+        except Exception as e:
+            notify(f"GPT Failure: {e}")
             raise e
 
     else:
+        content: list[GPTMessageItem] = []
+        if content_to_process and content_to_process["type"] == "image_url":
+            image = content_to_process
+            # If we are processing an image, we have
+            # to add it as a second message
+            content = [prompt, image]
+        else:
+            content = [prompt]
+
+        current_request: GPTMessage = {
+            "role": "user",
+            "content": content,
+        }
+
+        data = {
+            "messages": (
+                [
+                    format_messages(
+                        "system",
+                        [GPTMessageItem(type="text", text=system_message)],
+                    ),
+                ]
+                if system_message
+                else []
+            )
+            + GPTState.thread
+            + [current_request],
+            "max_tokens": 2024,
+            "temperature": settings.get("user.model_temperature"),
+            "n": 1,
+            "model": settings.get("user.openai_model"),
+        }
+        if GPTState.debug_enabled:
+            print(data)
+
         headers = {"Content-Type": "application/json"}
         token = get_token()
         # If the model endpoint is Azure, we need to use a different header
