@@ -162,7 +162,7 @@ def send_request(
     model_endpoint: str = settings.get("user.model_endpoint")  # type: ignore
     if model_endpoint == "llm":
         response = send_request_to_llm_cli(
-            prompt, content_to_process, model, system_message, continue_thread
+            prompt, content_to_process, system_message, model, continue_thread
         )
     else:
         response = send_request_to_api(request, system_message)
@@ -229,8 +229,8 @@ def send_request_to_api(request: GPTMessage, system_message: str) -> GPTMessageI
 def send_request_to_llm_cli(
     prompt: GPTMessageItem,
     content_to_process: Optional[GPTMessageItem],
-    model: str,
     system_message: str,
+    model: str,
     continue_thread: bool,
 ) -> GPTMessageItem:
     """Send a request to the LLM CLI tool and return the response"""
