@@ -169,16 +169,6 @@ def send_request(
 
     # Handle threading
     if GPTState.thread_enabled:
-        content: list[GPTMessageItem] = (
-            [prompt, content_to_process]
-            if content_to_process and content_to_process["type"] == "image_url"
-            else [prompt]
-        )
-        request = GPTMessage(
-            role="user",
-            content=content,
-        )
-
         GPTState.push_thread(request)
         GPTState.push_thread(
             {
