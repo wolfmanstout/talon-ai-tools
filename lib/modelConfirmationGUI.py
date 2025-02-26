@@ -1,6 +1,6 @@
 import textwrap
 
-from talon import Context, Module, actions, clip, imgui
+from talon import Context, Module, actions, clip, imgui, settings
 
 from .modelHelpers import GPTState, extract_message, notify
 
@@ -37,7 +37,9 @@ def confirmation_gui(gui: imgui.GUI):
     ConfirmationGUIState.update()
 
     for paragraph in GPTState.text_to_confirm.split("\n"):
-        for line in textwrap.wrap(paragraph, 80):
+        for line in textwrap.wrap(
+            paragraph, settings.get("user.model_window_char_width")
+        ):
             gui.text(line)
 
     # gui.spacer()
