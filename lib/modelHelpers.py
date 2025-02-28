@@ -235,7 +235,7 @@ def send_request_to_llm_cli(
 ) -> GPTMessageItem:
     """Send a request to the LLM CLI tool and return the response"""
     # Build command.
-    command: list[str] = [settings.get("user.model_llm_path")]
+    command: list[str] = [settings.get("user.model_llm_path")]  # type: ignore
     if continue_thread:
         command.append("-c")
     command.append(prompt["text"])  # type: ignore
@@ -248,11 +248,9 @@ def send_request_to_llm_cli(
             cmd_input = base64.b64decode(base64_data)
         else:
             command.extend(["-a", img_url])
-    command.extend(["-m", model])  # Model flag
-    # Set temperature if supported.
-    if model.startswith("gpt"):
-        temperature = settings.get("user.model_temperature")
-        command.extend(["-o", "temperature", str(temperature)])
+    command.extend(["-m", model])
+    temperature = settings.get("user.model_temperature")
+    command.extend(["-o", "temperature", str(temperature)])
     if system_message:
         command.extend(["-s", system_message])
 
