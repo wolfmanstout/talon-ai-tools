@@ -280,7 +280,7 @@ def send_request_to_llm_cli(
         notify(f"GPT Failure: {error_msg}")
         raise e
     except Exception as e:
-        notify(f"GPT Failure: {e}")
+        notify("GPT Failure: Check the Talon Log")
         raise e
 
 
