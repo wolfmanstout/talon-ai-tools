@@ -5,6 +5,6 @@ list: user.model
 model: model
 gem pro: gemini-2.0-pro-exp-02-05
 gem flash: gemini-2.0-flash
-claude: claude-3.5-sonnet
+claude: claude-3.7-sonnet
 mini: 4o-mini
 g p t: 4o
