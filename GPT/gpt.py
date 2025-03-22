@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, Optional
 
@@ -28,8 +29,8 @@ mod.tag(
 def gpt_query(
     prompt: GPTMessageItem,
     text_to_process: Optional[GPTMessageItem],
+    model: str,
     destination: str = "",
-    model: str = "",
     continue_thread: bool = False,
 ):
     """Send a prompt to the GPT API and return the response"""
@@ -38,7 +39,7 @@ def gpt_query(
     GPTState.last_was_pasted = False
 
     response = send_request(
-        prompt, text_to_process, destination, model, continue_thread
+        prompt, text_to_process, model, destination, continue_thread
     )
     GPTState.last_response = extract_message(response)
     return response
@@ -46,7 +47,7 @@ def gpt_query(
 
 @mod.action_class
 class UserActions:
-    def gpt_blend(source_text: str, destination_text: str) -> None:
+    def gpt_blend(source_text: str, destination_text: str, model: str) -> None:
         """Blend all the source text and send it to the destination"""
         prompt = f"""
         Act as a text transformer. I'm going to give you some source text and destination text, and I want you to modify the destination text based on the contents of the source text in a way that combines both of them together. Use the structure of the destination text, reordering and renaming as necessary to ensure a natural and coherent flow. Please return only the final text with no decoration for insertion into a document in the specified language.
@@ -59,15 +60,19 @@ class UserActions:
         Please return only the final text. What follows is all of the source texts separated by '---'.
         """
 
-        result = gpt_query(format_message(prompt), format_message(source_text))
+        result = gpt_query(format_message(prompt), format_message(source_text), model)
         actions.user.gpt_insert_response(result, "paste")
 
-    def gpt_blend_list(source_text: list[str], destination_text: str) -> None:
+    def gpt_blend_list(
+        source_text: list[str], destination_text: str, model: str
+    ) -> None:
         """Blend all the source text as a list and send it to the destination"""
 
-        return actions.user.gpt_blend("\n---\n".join(source_text), destination_text)
+        return actions.user.gpt_blend(
+            "\n---\n".join(source_text), destination_text, model
+        )
 
-    def gpt_generate_shell(text_to_process: str) -> str:
+    def gpt_generate_shell(text_to_process: str, model: str) -> str:
         """Generate a shell command from a spoken instruction"""
         shell_name = settings.get("user.model_shell_default")
         if shell_name is None:
@@ -79,10 +84,12 @@ class UserActions:
         Condense the code into a single line such that it can be ran in the terminal.
         """
 
-        result = gpt_query(format_message(prompt), format_message(text_to_process))
+        result = gpt_query(
+            format_message(prompt), format_message(text_to_process), model
+        )
         return extract_message(result)
 
-    def gpt_generate_sql(text_to_process: str) -> str:
+    def gpt_generate_sql(text_to_process: str, model: str) -> str:
         """Generate a SQL query from a spoken instruction"""
 
         prompt = """
@@ -91,9 +98,9 @@ class UserActions:
        Do not output comments, backticks, or natural language explanations.
        Prioritize SQL queries that are database agnostic.
         """
-        return gpt_query(format_message(prompt), format_message(text_to_process)).get(
-            "text", ""
-        )
+        return gpt_query(
+            format_message(prompt), format_message(text_to_process), model
+        ).get("text", "")
 
     def gpt_start_debug():
         """Enable debug logging"""
@@ -147,9 +154,9 @@ class UserActions:
 
     def gpt_apply_prompt(
         prompt: str,
+        model: str,
         source: str = "",
         destination: str = "",
-        model: str = "",
         model_thread_option: str = "",
     ) -> GPTMessageItem:
         """Apply an arbitrary prompt to arbitrary text"""
@@ -161,12 +168,22 @@ class UserActions:
         ):
             text_to_process = None  # type: ignore
 
+        # Convert model name from the model list to actual model name or use default
+        if model == "model":
+            # Check for deprecated setting first for backward compatibility
+            openai_model: str = settings.get("user.openai_model")  # type: ignore
+            if openai_model != "do_not_use":
+                logging.warning(
+                    "The setting 'user.openai_model' is deprecated. Please use 'user.model_default' instead."
+                )
+                model = openai_model
+            else:
+                model = settings.get("user.model_default")  # type: ignore
+
+        continue_thread = model_thread_option == "continueMostRecent"
+        
         response = gpt_query(
-            format_message(prompt),
-            text_to_process,
-            destination,
-            model if model != "model" else "",
-            model_thread_option == "continueMostRecent",
+            format_message(prompt), text_to_process, model, destination, continue_thread
         )
 
         actions.user.gpt_insert_response(response, destination)
@@ -196,14 +213,14 @@ class UserActions:
 
         builder.render()
 
-    def gpt_reformat_last(how_to_reformat: str) -> str:
+    def gpt_reformat_last(how_to_reformat: str, model: str) -> str:
         """Reformat the last model output"""
         PROMPT = f"""The last phrase was written using voice dictation. It has an error with spelling, grammar, or just general misrecognition due to a lack of context. Please reformat the following text to correct the error with the context that it was {how_to_reformat}."""
         last_output = actions.user.get_last_phrase()
         if last_output:
             actions.user.clear_last_phrase()
             return extract_message(
-                gpt_query(format_message(PROMPT), format_message(last_output))
+                gpt_query(format_message(PROMPT), format_message(last_output), model)
             )
         else:
             notify("No text to reformat")

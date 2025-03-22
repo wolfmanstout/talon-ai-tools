@@ -10,15 +10,16 @@ mode: user.dictation_command
 #   Example: `model paste with clip address email to alice instead of bob` -> Rewrites the copied text and pastes it
 #   Example: `model show what is the meaning of life` -> Shows the meaning of life in an overlay
 #   Example: `model and show distill that to a number` -> (Following the previous prompt) shows the distilled meaning of life as a number in an overlay
+#   Example: `four o mini explain this` -> Uses gpt-4o-mini model to explain the selected text
 {user.model} [{user.modelThreadOption}] {user.modelAction} [with {user.modelSource}] <user.prose>$:
-    user.gpt_apply_prompt(prose, modelSource or "", modelAction, model, modelThreadOption or "")
+    user.gpt_apply_prompt(prose, model, modelSource or "", modelAction, modelThreadOption or "")
 
 # Same as above, except using a saved prompt. Allows for alternative terse syntax for providing modelSource after the prompt.
 #   Example: `model paste below fix grammar` -> Fixes the grammar of the selected text and pastes below
 #   Example: `model paste explain` -> Explains the selected text and pastes in place
 #   Example: `model show browser fix grammar clip` -> Fixes the grammar of the text on the clipboard and opens in browser`
 {user.model} [{user.modelThreadOption}] {user.modelAction} ([with {user.modelSource}] <user.modelSimplePrompt> | <user.modelSimplePrompt> {user.modelSource})$:
-    user.gpt_apply_prompt(modelSimplePrompt, modelSource or "", modelAction, model, modelThreadOption or "")
+    user.gpt_apply_prompt(modelSimplePrompt, model, modelSource or "", modelAction, modelThreadOption or "")
 
 # Select the last GPT response so you can edit it further
 {user.model} take response: user.gpt_select_last()
@@ -28,12 +29,12 @@ mode: user.dictation_command
 {user.model} apply [from] clip$:
     prompt = clip.text()
     text = edit.selected_text()
-    result = user.gpt_apply_prompt(prompt, text)
+    result = user.gpt_apply_prompt(prompt, model, text)
     user.paste(result)
 
 # Reformat the last dictation with additional context or formatting instructions
 {user.model} [nope] that was <user.text>$:
-    result = user.gpt_reformat_last(text)
+    result = user.gpt_reformat_last(text, model)
     user.paste(result)
 
 # Enable debug logging so you can more details about messages being sent

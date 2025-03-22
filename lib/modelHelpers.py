@@ -95,17 +95,20 @@ def format_clipboard() -> GPTMessageItem:
 def send_request(
     prompt: GPTMessageItem,
     content_to_process: Optional[GPTMessageItem],
+    model: str,
     destination: str = "",
-    model: str = "",
     continue_thread: bool = False,
 ) -> GPTMessageItem:
     """Generate run a GPT request and return the response"""
-    model = model or settings.get("user.openai_model")  # type: ignore
     notification = "GPT Task Started"
     if len(GPTState.context) > 0:
         notification += ": Reusing Stored Context"
     if GPTState.thread_enabled:
         notification += ", Threading Enabled"
+
+    # Use specified model if provided
+    if model:
+        notification += f", Using model: {model}"
 
     if settings.get("user.model_verbose_notifications"):
         notify(notification)
@@ -165,7 +168,7 @@ def send_request(
             prompt, content_to_process, system_message, model, continue_thread
         )
     else:
-        response = send_request_to_api(request, system_message)
+        response = send_request_to_api(request, system_message, model)
 
     # Handle threading
     if GPTState.thread_enabled:
@@ -180,7 +183,9 @@ def send_request(
     return response
 
 
-def send_request_to_api(request: GPTMessage, system_message: str) -> GPTMessageItem:
+def send_request_to_api(
+    request: GPTMessage, system_message: str, model: str
+) -> GPTMessageItem:
     """Send a request to the model API endpoint and return the response"""
     data = {
         "messages": (
@@ -198,7 +203,7 @@ def send_request_to_api(request: GPTMessage, system_message: str) -> GPTMessageI
         "max_tokens": 2024,
         "temperature": settings.get("user.model_temperature"),
         "n": 1,
-        "model": settings.get("user.openai_model"),
+        "model": model,
     }
     if GPTState.debug_enabled:
         print(data)
