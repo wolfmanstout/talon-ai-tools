@@ -74,7 +74,7 @@ mod.setting(
 mod.setting(
     "model_verbose_notifications",
     type=bool,
-    default=False,
+    default=True,
     desc="If true, show notifications when model starts and stops.",
 )
 
