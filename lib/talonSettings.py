@@ -75,7 +75,7 @@ mod.setting(
     "model_verbose_notifications",
     type=bool,
     default=True,
-    desc="If true, show notifications when model starts and stops.",
+    desc="If true, show notifications when model starts and completes successfully.",
 )
 
 mod.setting(
