@@ -11,7 +11,7 @@ mod.list("model", desc="The name of the model")
 mod.list("modelDestination", desc="What to do after returning the model response")
 mod.list("modelAction", desc="What to do after returning the model response")
 mod.list("modelSource", desc="Where to get the text from for the GPT")
-mod.list("modelThreadOption", desc="Which conversation thread to continue")
+mod.list("thread", desc="Which conversation thread to continue")
 
 
 # model prompts can be either static and predefined by this repo or custom outside of it

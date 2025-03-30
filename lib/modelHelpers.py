@@ -105,11 +105,15 @@ def send_request(
     prompt: GPTMessageItem,
     content_to_process: Optional[GPTMessageItem],
     model: str,
+    thread: str = "",
     destination: str = "",
-    continue_thread: bool = False,
 ) -> GPTMessageItem:
     """Generate run a GPT request and return the response"""
     model = resolve_model_name(model)
+
+    # Calculate continue_thread based on thread option
+    continue_thread = thread == "continueLast"
+
     notification = "GPT Task Started"
     if len(GPTState.context) > 0:
         notification += ": Reusing Stored Context"
