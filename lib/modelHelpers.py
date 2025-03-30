@@ -111,7 +111,6 @@ def send_request(
     """Generate run a GPT request and return the response"""
     model = resolve_model_name(model)
 
-    # Calculate continue_thread based on thread option
     continue_thread = thread == "continueLast"
 
     notification = "GPT Task Started"
@@ -180,6 +179,8 @@ def send_request(
             prompt, content_to_process, system_message, model, continue_thread
         )
     else:
+        if continue_thread:
+            notify("Warning: Thread continuation is only supported when using the llm CLI tool")
         response = send_request_to_api(request, system_message, model)
 
     return response
