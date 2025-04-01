@@ -105,7 +105,7 @@ def send_request(
     prompt: GPTMessageItem,
     content_to_process: Optional[GPTMessageItem],
     model: str,
-    thread: str = "",
+    thread: str,
     destination: str = "",
 ) -> GPTMessageItem:
     """Generate run a GPT request and return the response"""
@@ -180,7 +180,9 @@ def send_request(
         )
     else:
         if continue_thread:
-            notify("Warning: Thread continuation is only supported when using the llm CLI tool")
+            notify(
+                "Warning: Thread continuation is only supported when using setting user.model_endpoint = 'llm'"
+            )
         response = send_request_to_api(request, system_message, model)
 
     return response
