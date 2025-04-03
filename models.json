@@ -1,6 +1,11 @@
 [
     {
         "name": "gpt-4o-mini",
-        "temperature": 0.6
+        "api_options": {
+            "temperature": 0.6
+        },
+        "llm_options": {
+            "temperature": 0.6
+        }
     }
 ]
