@@ -169,6 +169,9 @@ def send_request(
     if settings.get("user.model_verbose_notifications"):
         notify(notification)
 
+    # Get model configuration if available
+    config = get_model_config(model)
+
     language = actions.code.language()
     language_context = (
         f"The user is currently in a code editor for the programming language: {language}."
@@ -186,7 +189,11 @@ def send_request(
         [
             item
             for item in [
-                settings.get("user.model_system_prompt"),
+                (
+                    config["system_prompt"]
+                    if config and "system_prompt" in config
+                    else settings.get("user.model_system_prompt")
+                ),
                 language_context,
                 application_context,
                 snippet_context,
@@ -239,10 +246,6 @@ def send_request_to_api(
     """Send a request to the model API endpoint and return the response"""
     # Get model configuration if available
     config = get_model_config(model)
-
-    # Use system_prompt from configuration if available
-    if config and "system_prompt" in config:
-        system_message = config["system_prompt"]
 
     # Use model_id from configuration if available
     model_id = config["model_id"] if config and "model_id" in config else model
@@ -312,10 +315,6 @@ def send_request_to_llm_cli(
     """Send a request to the LLM CLI tool and return the response"""
     # Get model configuration if available
     config = get_model_config(model)
-
-    # Use system_prompt from configuration if available
-    if config and "system_prompt" in config:
-        system_message = config["system_prompt"]
 
     # Use model_id from configuration if available
     model_id = config["model_id"] if config and "model_id" in config else model
