@@ -1,0 +1,15 @@
+list: user.modelFragmentPrefix
+-
+
+# List of prefixes that can be used when applying a source as a fragment
+# These prefixes are prepended to the content before passing as a fragment
+
+fragment: ""
+url: ""
+file: ""
+
+# GitHub fragment prefix
+github: github:
+
+# Jina fragment prefix
+jina: https://r.jina.ai/

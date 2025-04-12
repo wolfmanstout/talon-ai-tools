@@ -11,14 +11,14 @@ mode: user.dictation_command
 #   Example: `model show what is the meaning of life` -> Shows the meaning of life in an overlay
 #   Example: `model and show distill that to a number` -> (Following the previous prompt) shows the distilled meaning of life as a number in an overlay
 #   Example: `four o mini paste make my email more tactful` -> Makes the selected text more tactful using gpt-4o-mini model
-{user.model} [{user.modelThread}] {user.modelAction} [with {user.modelSource}] <user.prose>$:
+{user.model} [{user.modelThread}] {user.modelAction} [with <user.modelSource>] <user.prose>$:
     user.gpt_apply_prompt(prose, model, modelThread or "", modelSource or "", modelAction)
 
 # Same as above, except using a saved prompt. Allows for alternative terse syntax for providing modelSource after the prompt.
 #   Example: `model paste below fix grammar` -> Fixes the grammar of the selected text and pastes below
 #   Example: `model paste explain` -> Explains the selected text and pastes in place
 #   Example: `model show browser fix grammar clip` -> Fixes the grammar of the text on the clipboard and opens in browser`
-{user.model} [{user.modelThread}] {user.modelAction} ([with {user.modelSource}] <user.modelSimplePrompt> | <user.modelSimplePrompt> {user.modelSource})$:
+{user.model} [{user.modelThread}] {user.modelAction} ([with <user.modelSource>] <user.modelSimplePrompt> | <user.modelSimplePrompt> <user.modelSource>)$:
     user.gpt_apply_prompt(modelSimplePrompt, model, modelThread or "", modelSource or "", modelAction)
 
 # Select the last GPT response so you can edit it further

@@ -1,11 +1,12 @@
 import os
-from typing import Any, Optional
+from typing import Any, Literal, NotRequired, Optional, TypedDict
 
 from talon import Module, actions, clip, settings
 
 from ..lib.HTMLBuilder import Builder
 from ..lib.modelConfirmationGUI import confirmation_gui
 from ..lib.modelHelpers import (
+    SourceInfo,
     extract_message,
     format_clipboard,
     format_message,
@@ -16,6 +17,20 @@ from ..lib.modelHelpers import (
 from ..lib.modelState import GPTState
 from ..lib.modelTypes import GPTMessageItem
 
+
+# TypedDict for the source descriptor returned from the modelSource capture
+class SourceDescriptor(TypedDict):
+    type: Literal["source", "fragment", "source_as_fragment"]
+    value: str
+    prefix: NotRequired[str]  # Required when type is "source_as_fragment"
+
+
+# Helper function to create a source info of type "source" with text content
+def create_source_info_text(text: str) -> SourceInfo:
+    """Create a source info with 'source' type and text content"""
+    return {"type": "source", "content": format_message(text)}
+
+
 mod = Module()
 mod.tag(
     "model_window_open",
@@ -25,7 +40,7 @@ mod.tag(
 
 def gpt_query(
     prompt: GPTMessageItem,
-    text_to_process: Optional[GPTMessageItem],
+    source_info: Optional[SourceInfo],
     model: str,
     thread: str,
     destination: str = "",
@@ -35,7 +50,7 @@ def gpt_query(
     # Reset state before pasting
     GPTState.last_was_pasted = False
 
-    response = send_request(prompt, text_to_process, model, thread, destination)
+    response = send_request(prompt, source_info, model, thread, destination)
     GPTState.last_response = extract_message(response)
     return response
 
@@ -55,7 +70,10 @@ class UserActions:
         """
 
         result = gpt_query(
-            format_message(prompt), format_message(text_to_process), model, thread
+            format_message(prompt),
+            create_source_info_text(text_to_process),
+            model,
+            thread,
         )
         return extract_message(result)
 
@@ -68,8 +86,12 @@ class UserActions:
        Do not output comments, backticks, or natural language explanations.
        Prioritize SQL queries that are database agnostic.
         """
+
         return gpt_query(
-            format_message(prompt), format_message(text_to_process), model, thread
+            format_message(prompt),
+            create_source_info_text(text_to_process),
+            model,
+            thread,
         ).get("text", "")
 
     def gpt_start_debug():
@@ -111,17 +133,15 @@ class UserActions:
         prompt: str,
         model: str,
         thread: str,
-        source: str = "",
+        source: Optional[SourceDescriptor] | str = None,  # Allow empty string
         destination: str = "",
     ) -> GPTMessageItem:
         """Apply an arbitrary prompt to arbitrary text"""
 
-        text_to_process: GPTMessageItem = actions.user.gpt_get_source_text(source)
-        if not text_to_process.get("text") and not text_to_process.get("image_url"):
-            text_to_process = None  # type: ignore
+        source_info = actions.user.gpt_get_source_text(source or None)
 
         response = gpt_query(
-            format_message(prompt), text_to_process, model, thread, destination
+            format_message(prompt), source_info, model, thread, destination
         )
 
         actions.user.gpt_insert_response(response, destination)
@@ -139,19 +159,21 @@ class UserActions:
 
         # Join the list into a single string
         source_text = "\n".join(source)
-        text_to_process = format_message(source_text)
+
+        # Create a simple source_info with direct source
+        source_info = create_source_info_text(source_text)
 
         # Send the request but don't insert the response (Cursorless will handle insertion)
-        response = gpt_query(format_message(prompt), text_to_process, model, thread, "")
+        response = gpt_query(format_message(prompt), source_info, model, thread, "")
 
         # Return just the text string
         return extract_message(response)
 
     def gpt_pass(source: str = "", destination: str = "") -> None:
         """Passes a response from source to destination"""
-        actions.user.gpt_insert_response(
-            actions.user.gpt_get_source_text(source), destination
-        )
+        source_descriptor: SourceDescriptor = {"type": "source", "value": source}
+        source_info = actions.user.gpt_get_source_text(source_descriptor)
+        actions.user.gpt_insert_response(source_info["content"], destination)
 
     def gpt_help() -> None:
         """Open the GPT help file in the web browser"""
@@ -179,7 +201,10 @@ class UserActions:
             actions.user.clear_last_phrase()
             return extract_message(
                 gpt_query(
-                    format_message(PROMPT), format_message(last_output), model, thread
+                    format_message(PROMPT),
+                    create_source_info_text(last_output),
+                    model,
+                    thread,
                 )
             )
         else:
@@ -278,34 +303,64 @@ class UserActions:
             case _:
                 pass
 
-    def gpt_get_source_text(spoken_text: str) -> GPTMessageItem:
-        """Get the source text that is will have the prompt applied to it"""
-        match spoken_text:
+    def gpt_get_source_text(
+        source_descriptor: Optional[SourceDescriptor],
+    ) -> Optional[SourceInfo]:
+        """Get the source content based on the source descriptor provided by the modelSource capture"""
+        # If source_descriptor is None, return None
+        if source_descriptor is None:
+            return None
+
+        result_info: SourceInfo = {"type": source_descriptor["type"]}  # type: ignore
+
+        # If it's a direct fragment, just return the fragment name
+        if source_descriptor["type"] == "fragment":
+            result_info["content"] = format_message(source_descriptor["value"])
+            return result_info
+
+        # Get the actual content based on the source identifier
+        source_identifier = source_descriptor["value"]
+        content = None
+
+        match source_identifier:
             case "clipboard":
-                return format_clipboard()
+                content = format_clipboard()
             case "context":
                 if GPTState.context == []:
                     notify("GPT Failure: Context is empty")
                     raise Exception(
                         "GPT Failure: User applied a prompt to the phrase context, but there was no context stored"
                     )
-                return format_message(messages_to_string(GPTState.context))
+                content = format_message(messages_to_string(GPTState.context))
             case "gptResponse":
                 if GPTState.last_response == "":
                     raise Exception(
                         "GPT Failure: User applied a prompt to the phrase GPT response, but there was no GPT response stored"
                     )
-                return format_message(GPTState.last_response)
-
+                content = format_message(GPTState.last_response)
             case "lastTalonDictation":
                 last_output = actions.user.get_last_phrase()
                 if last_output:
                     actions.user.clear_last_phrase()
-                    return format_message(last_output)
+                    content = format_message(last_output)
                 else:
                     notify("GPT Failure: No last dictation to reformat")
                     raise Exception(
                         "GPT Failure: User applied a prompt to the phrase last Talon Dictation, but there was no text to reformat"
                     )
             case "this" | _:
-                return format_message(actions.edit.selected_text())
+                content = format_message(actions.edit.selected_text())
+
+        # Check if content is empty
+        if content is None or not content.get("text") and not content.get("image_url"):
+            return None
+
+        result_info["content"] = content
+
+        # If it's source as fragment, add the prefix
+        if source_descriptor["type"] == "source_as_fragment":
+            if "prefix" not in source_descriptor:
+                raise ValueError("source_as_fragment must have 'prefix' field")
+            result_info["prefix"] = source_descriptor["prefix"]
+
+        return result_info

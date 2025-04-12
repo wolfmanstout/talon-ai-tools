@@ -1,0 +1,9 @@
+list: user.modelFragment
+-
+
+# List of fragment names for the LLM CLI tool
+# These can be used with the LLM CLI tool as fragments (-f option)
+# Add your fragments here, for example:
+
+# Documentation fragment - with trailing colon as it's the exact fragment name
+llm docs: docs:

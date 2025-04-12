@@ -11,7 +11,29 @@ mod.list("model", desc="The name of the model")
 mod.list("modelDestination", desc="What to do after returning the model response")
 mod.list("modelAction", desc="What to do after returning the model response")
 mod.list("modelSource", desc="Where to get the text from for the GPT")
+mod.list("modelFragment", desc="Fragment name to use with LLM CLI")
+mod.list(
+    "modelFragmentPrefix", desc="Prefix to prepend to content when using as a fragment"
+)
 mod.list("modelThread", desc="Which conversation thread to continue")
+
+
+# Capture for modelSource that allows for fragment alternatives
+@mod.capture(
+    rule="{user.modelSource} | {user.modelFragment} | ({user.modelSource} as {user.modelFragmentPrefix})"
+)
+def modelSource(m) -> dict:
+    """Capture that allows different types of sources, including fragments and source-as-fragment patterns"""
+    if hasattr(m, "modelFragment"):
+        return {"type": "fragment", "value": m.modelFragment}
+    elif hasattr(m, "modelSource") and hasattr(m, "modelFragmentPrefix"):
+        return {
+            "type": "source_as_fragment",
+            "value": m.modelSource,
+            "prefix": m.modelFragmentPrefix,
+        }
+    else:
+        return {"type": "source", "value": m.modelSource}
 
 
 # model prompts can be either static and predefined by this repo or custom outside of it
