@@ -355,8 +355,27 @@ class UserActions:
                 return None
 
             # Create the fragment by combining the prefix with the content
-            fragment = f"{content_spec.source_as_fragment.prefix}{inline_content.text}"
+            # Strip whitespace from the text to avoid issues with extra spaces
+            fragment = f"{content_spec.source_as_fragment.prefix}{inline_content.text.strip()}"
             return Content(fragment=fragment)
+
+        # If it's specified as an attachment
+        elif content_spec.attachment:
+            # Get the source content
+            inline_content = resolve_source(content_spec.attachment)
+
+            # For images, return an error - attachments should be URLs or files
+            if inline_content.image_bytes:
+                notify(
+                    "GPT Failure: Can't use images directly as attachments, use URLs or file paths instead"
+                )
+                return None
+
+            # For text content, pass it directly as attachment
+            elif inline_content.text:
+                return Content(attachment=inline_content.text.strip())
+            else:
+                return None
 
         # Regular source resolution
         elif content_spec.source:
@@ -371,5 +390,5 @@ class UserActions:
 
         else:
             raise ValueError(
-                "Invalid ContentSpec: must specify either fragment, source, or source_as_fragment"
+                "Invalid ContentSpec: must specify either fragment, source, source_as_fragment, or attachment"
             )

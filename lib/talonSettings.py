@@ -32,24 +32,45 @@ class ContentSpec:
     source: Optional[str] = None
     fragment: Optional[str] = None
     source_as_fragment: Optional[SourceAsFragment] = None
+    attachment: Optional[str] = None
 
 
-# Capture for modelSource that allows for fragment alternatives
+# Individual captures for different source types
+@mod.capture(rule="{user.modelSource}")
+def modelSourceSimple(m) -> ContentSpec:
+    """Basic source capture"""
+    return ContentSpec(source=m.modelSource)
+
+
+@mod.capture(rule="{user.modelFragment}")
+def modelFragmentSimple(m) -> ContentSpec:
+    """Fragment capture"""
+    return ContentSpec(fragment=m.modelFragment)
+
+
+@mod.capture(rule="({user.modelSource} as {user.modelFragmentPrefix})")
+def modelSourceAsFragment(m) -> ContentSpec:
+    """Source as fragment with prefix capture"""
+    return ContentSpec(
+        source_as_fragment=SourceAsFragment(
+            source=m.modelSource, prefix=m.modelFragmentPrefix
+        )
+    )
+
+
+@mod.capture(rule="({user.modelSource} as attachment)")
+def modelSourceAsAttachment(m) -> ContentSpec:
+    """Source as attachment capture"""
+    return ContentSpec(attachment=m.modelSource)
+
+
+# Combined capture for all source types
 @mod.capture(
-    rule="{user.modelSource} | {user.modelFragment} | ({user.modelSource} as {user.modelFragmentPrefix})"
+    rule="<user.modelSourceSimple> | <user.modelFragmentSimple> | <user.modelSourceAsFragment> | <user.modelSourceAsAttachment>"
 )
 def modelSource(m) -> ContentSpec:
-    """Capture that allows different types of sources, including fragments and source-as-fragment patterns"""
-    if hasattr(m, "modelFragment"):
-        return ContentSpec(fragment=m.modelFragment)
-    elif hasattr(m, "modelSource") and hasattr(m, "modelFragmentPrefix"):
-        return ContentSpec(
-            source_as_fragment=SourceAsFragment(
-                source=m.modelSource, prefix=m.modelFragmentPrefix
-            )
-        )
-    else:
-        return ContentSpec(source=m.modelSource)
+    """Capture that allows different types of sources, including fragments, source-as-fragment patterns, and attachments"""
+    return m[0]
 
 
 # model prompts can be either static and predefined by this repo or custom outside of it
