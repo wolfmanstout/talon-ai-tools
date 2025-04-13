@@ -161,6 +161,10 @@ class UserActions:
 
         if source:
             content = actions.user.gpt_get_source_text(source)
+            if not content:
+                error = f"No content for source: {source}"
+                notify(error)
+                raise Exception(error)
         else:
             content = actions.user.gpt_get_source_text(ContentSpec(source="this"))
 
@@ -200,7 +204,9 @@ class UserActions:
         if content and content.text:
             actions.user.gpt_insert_response(format_message(content.text), destination)
         else:
-            notify("No text to pass")
+            error = f"No text found for source: {source}"
+            notify(error)
+            raise Exception(error)
 
     def gpt_help() -> None:
         """Open the GPT help file in the web browser"""
