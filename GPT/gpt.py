@@ -356,7 +356,9 @@ class UserActions:
 
             # Create the fragment by combining the prefix with the content
             # Strip whitespace from the text to avoid issues with extra spaces
-            fragment = f"{content_spec.source_as_fragment.prefix}{inline_content.text.strip()}"
+            fragment = (
+                f"{content_spec.source_as_fragment.prefix}{inline_content.text.strip()}"
+            )
             return Content(fragment=fragment)
 
         # If it's specified as an attachment
