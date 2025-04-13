@@ -159,7 +159,10 @@ class UserActions:
     ) -> GPTMessageItem:
         """Apply an arbitrary prompt to arbitrary text"""
 
-        content = actions.user.gpt_get_source_text(source or None)
+        if source:
+            content = actions.user.gpt_get_source_text(source)
+        else:
+            content = actions.user.gpt_get_source_text(ContentSpec(source="this"))
 
         response = gpt_query(
             format_message(prompt), content, model, thread, destination
@@ -328,13 +331,9 @@ class UserActions:
                 pass
 
     def gpt_get_source_text(
-        content_spec: Optional[ContentSpec],
+        content_spec: ContentSpec,
     ) -> Optional[Content]:
         """Get the source content based on the ContentSpec provided by the modelSource capture"""
-        # If content_spec is None, return None
-        if content_spec is None:
-            return None
-
         # If it's a direct fragment, just return the fragment name
         if content_spec.fragment:
             return Content(fragment=content_spec.fragment)
