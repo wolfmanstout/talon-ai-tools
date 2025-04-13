@@ -4,6 +4,7 @@ import logging
 import os
 import platform
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, Any, Literal, NotRequired, Optional, TypedDict
 
@@ -28,11 +29,12 @@ class ModelConfig(TypedDict):
     api_options: NotRequired[dict[str, Any]]
 
 
-# Source type definitions for different ways to pass content to LLM
-class SourceInfo(TypedDict):
-    type: Literal["source", "fragment", "source_as_fragment"]
-    content: GPTMessageItem  # The actual content (text or image)
-    prefix: NotRequired[str]  # The prefix to use when type is source_as_fragment
+@dataclass
+class Content:
+    text: Optional[str] = None
+    image_bytes: Optional[bytes] = None
+    fragment: Optional[str] = None
+    attachment: Optional[str] = None
 
 
 # Path to the models.json file
@@ -144,27 +146,29 @@ def extract_message(content: GPTMessageItem) -> str:
     return content.get("text", "")
 
 
-def format_clipboard() -> GPTMessageItem:
+@dataclass
+class InlineContent:
+    text: Optional[str] = None
+    image_bytes: Optional[bytes] = None
+
+
+def get_clipboard_content() -> InlineContent:
+    """Get content from the clipboard as either text or image bytes"""
     clipped_image = clip.image()
     if clipped_image:
         data = clipped_image.encode().data()
-        base64_image = base64.b64encode(data).decode("utf-8")
-        return {
-            "type": "image_url",
-            "image_url": {"url": f"data:image/;base64,{base64_image}"},
-        }
+        return InlineContent(image_bytes=data)
     else:
         if not clip.text():
             raise RuntimeError(
                 "User requested info from the clipboard but there is nothing in it"
             )
-
-        return format_message(clip.text())  # type: ignore Unclear why this is not narrowing the type
+        return InlineContent(text=clip.text())
 
 
 def send_request(
     prompt: GPTMessageItem,
-    source_info: Optional[SourceInfo],
+    content: Optional[Content],
     model: str,
     thread: str,
     destination: str = "",
@@ -223,21 +227,21 @@ def send_request(
     model_endpoint: str = settings.get("user.model_endpoint")  # type: ignore
     if model_endpoint == "llm":
         response = send_request_to_llm_cli(
-            prompt, source_info, system_message, model, continue_thread
+            prompt, content, system_message, model, continue_thread
         )
     else:
         if continue_thread:
             notify(
                 "Warning: Thread continuation is only supported when using setting user.model_endpoint = 'llm'"
             )
-        response = send_request_to_api(prompt, source_info, system_message, model)
+        response = send_request_to_api(prompt, content, system_message, model)
 
     return response
 
 
 def send_request_to_api(
     prompt: GPTMessageItem,
-    source_info: Optional[SourceInfo],
+    content: Optional[Content],
     system_message: str,
     model: str,
 ) -> GPTMessageItem:
@@ -249,23 +253,29 @@ def send_request_to_api(
     model_id = config["model_id"] if config and "model_id" in config else model
 
     # Prepare content for API request
-    content: list[GPTMessageItem] = [prompt]
-    if source_info is not None and "content" in source_info:
-        content_item = source_info["content"]
-        if content_item["type"] == "image_url":
+    api_content: list[GPTMessageItem] = [prompt]
+    if content is not None:
+        if content.image_bytes:
             # If we are processing an image, add it as a second message
-            content = [prompt, content_item]
-        elif content_item["type"] == "text":
+            base64_image = base64.b64encode(content.image_bytes).decode("utf-8")
+            api_content = [
+                prompt,
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/;base64,{base64_image}"},
+                },
+            ]
+        elif content.text:
             # If we are processing text content, add it to the same message
             prompt["text"] = (
-                prompt["text"] + '\n\n"""' + content_item["text"] + '"""'  # type: ignore a Prompt has to be of type text
+                prompt["text"] + '\n\n"""' + content.text + '"""'  # type: ignore a Prompt has to be of type text
             )
-            content = [prompt]
+            api_content = [prompt]
 
     # Create request
     request = GPTMessage(
         role="user",
-        content=content,
+        content=api_content,
     )
 
     data = {
@@ -325,7 +335,7 @@ def send_request_to_api(
 
 def send_request_to_llm_cli(
     prompt: GPTMessageItem,
-    source_info: Optional[SourceInfo],
+    content: Optional[Content],
     system_message: str,
     model: str,
     continue_thread: bool,
@@ -341,50 +351,28 @@ def send_request_to_llm_cli(
     command: list[str] = [settings.get("user.model_llm_path")]  # type: ignore
     if continue_thread:
         command.append("-c")
-    command.append(prompt["text"])  # type: ignore
     cmd_input: bytes | None = None
 
-    # Handle different source types for LLM CLI
-    if source_info is not None:
-        source_type = source_info["type"]
-        content_item = source_info["content"]
-
-        if source_type == "fragment":
+    # Handle different content types for LLM CLI
+    if content is not None:
+        if content.fragment:
             # For direct fragment use, pass the fragment name directly
-            if "text" not in content_item:
-                raise ValueError("Fragment content must have 'text' field")
-            command.extend(["-f", content_item["text"]])
-        elif source_type == "source_as_fragment":
-            # For source as fragment, combine the prefix with content and use as fragment
-            if content_item["type"] == "image_url":
-                # Images can't be used as fragments with prefixes
-                notify("GPT Failure: Can't use images as fragments with prefixes")
-                raise Exception("Images cannot be used as fragments with prefixes")
-
-            # Create fragment path with prefix
-            if "prefix" not in source_info:
-                raise ValueError("Source as fragment must have 'prefix' field")
-            prefix = source_info["prefix"]
-            if "text" not in content_item:
-                raise ValueError("Fragment content must have 'text' field")
-            fragment_path = f"{prefix}{content_item['text']}"
-            command.extend(["-f", fragment_path])
-        elif content_item and content_item["type"] == "image_url":
-            # For regular image content
-            img_url: str = content_item["image_url"]["url"]  # type: ignore
-            if img_url.startswith("data:"):
-                command.extend(["-a", "-"])
-                base64_data: str = img_url.split(",", 1)[1]
-                cmd_input = base64.b64decode(base64_data)
-            else:
-                command.extend(["-a", img_url])
-        elif content_item and content_item["type"] == "text":
+            command.extend(["-f", content.fragment])
+        elif content.image_bytes:
+            # For image content
+            command.extend(["-a", "-"])
+            cmd_input = content.image_bytes
+        elif content.attachment:
+            # For external attachment URL
+            command.extend(["-a", content.attachment])
+        elif content.text:
             # For regular text content, embed it in the prompt
             prompt["text"] = (
-                prompt["text"] + '\n\n"""' + content_item["text"] + '"""'  # type: ignore a Prompt has to be of type text
+                prompt["text"] + '\n\n"""' + content.text + '"""'  # type: ignore
             )
-            # Update the command with the modified prompt
-            command[command.index(prompt["text"])] = prompt["text"]  # type: ignore
+
+    # Add the prompt after all other arguments have been processed
+    command.append(prompt["text"])  # type: ignore
 
     # Add model option
     command.extend(["-m", model_id])

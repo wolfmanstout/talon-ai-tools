@@ -5,8 +5,6 @@ list: user.modelFragmentPrefix
 # These prefixes are prepended to the content before passing as a fragment
 
 fragment: ""
-url: ""
-file: ""
 
 # GitHub fragment prefix
 github: github:

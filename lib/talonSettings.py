@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Optional
+
 from talon import Context, Module
 
 mod = Module()
@@ -18,22 +21,35 @@ mod.list(
 mod.list("modelThread", desc="Which conversation thread to continue")
 
 
+@dataclass
+class SourceAsFragment:
+    source: str
+    prefix: str
+
+
+@dataclass
+class ContentSpec:
+    source: Optional[str] = None
+    fragment: Optional[str] = None
+    source_as_fragment: Optional[SourceAsFragment] = None
+
+
 # Capture for modelSource that allows for fragment alternatives
 @mod.capture(
     rule="{user.modelSource} | {user.modelFragment} | ({user.modelSource} as {user.modelFragmentPrefix})"
 )
-def modelSource(m) -> dict:
+def modelSource(m) -> ContentSpec:
     """Capture that allows different types of sources, including fragments and source-as-fragment patterns"""
     if hasattr(m, "modelFragment"):
-        return {"type": "fragment", "value": m.modelFragment}
+        return ContentSpec(fragment=m.modelFragment)
     elif hasattr(m, "modelSource") and hasattr(m, "modelFragmentPrefix"):
-        return {
-            "type": "source_as_fragment",
-            "value": m.modelSource,
-            "prefix": m.modelFragmentPrefix,
-        }
+        return ContentSpec(
+            source_as_fragment=SourceAsFragment(
+                source=m.modelSource, prefix=m.modelFragmentPrefix
+            )
+        )
     else:
-        return {"type": "source", "value": m.modelSource}
+        return ContentSpec(source=m.modelSource)
 
 
 # model prompts can be either static and predefined by this repo or custom outside of it
