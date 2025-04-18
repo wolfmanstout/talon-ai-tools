@@ -1,6 +1,6 @@
 [
     {
-        "name": "gemini-2.0-flash-search",
+        "name": "gemini-flash-search",
         "model_id": "gemini-2.0-flash",
         "llm_options": {
             "google_search": true
