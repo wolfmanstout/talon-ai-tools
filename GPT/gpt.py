@@ -154,17 +154,24 @@ class UserActions:
         prompt: str,
         model: str,
         thread: str,
-        source: Optional[ContentSpec] | str = None,  # Allow empty string
+        source: Optional[ContentSpec] | str = None,
         destination: str = "",
     ) -> GPTMessageItem:
-        """Apply an arbitrary prompt to arbitrary text"""
+        """Apply an arbitrary prompt to arbitrary text
+
+        If source is a non-empty string, it will be treated as direct text content.
+        If source is a ContentSpec, it will be processed through gpt_get_source_text.
+        """
 
         if source:
-            content = actions.user.gpt_get_source_text(source)
-            if not content:
-                error = f"No content for source: {source}"
-                notify(error)
-                raise Exception(error)
+            if isinstance(source, str) and source:
+                content = Content(text=source)
+            else:
+                content = actions.user.gpt_get_source_text(source)
+                if not content:
+                    error = f"No content for source: {source}"
+                    notify(error)
+                    raise Exception(error)
         else:
             content = actions.user.gpt_get_source_text(ContentSpec(source="this"))
 

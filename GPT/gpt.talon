@@ -14,12 +14,18 @@ mode: user.dictation_command
 {user.model} [{user.modelThread}] {user.modelAction} [with <user.modelSource>] <user.prose>$:
     user.gpt_apply_prompt(prose, model, modelThread or "", modelSource or "", modelAction)
 
-# Same as above, except using a saved prompt. Allows for alternative terse syntax for providing modelSource after the prompt.
+# Uses a saved prompt with possible source specification. Two command patterns supported:
+# 1. With modelSource specified for content selection:
 #   Example: `model paste below fix grammar` -> Fixes the grammar of the selected text and pastes below
 #   Example: `model paste explain` -> Explains the selected text and pastes in place
-#   Example: `model show browser fix grammar clip` -> Fixes the grammar of the text on the clipboard and opens in browser`
-{user.model} [{user.modelThread}] {user.modelAction} ([with <user.modelSource>] <user.modelSimplePrompt> | <user.modelSimplePrompt> <user.modelSource>)$:
+#   Example: `model show browser fix grammar clip` -> Fixes the grammar of the text on the clipboard and opens in browser
+# 2. With prose as direct text source:
+#   Example: `model paste fix grammar with this is a test` -> Uses "this is a test" as direct text input
+{user.model} [{user.modelThread}] {user.modelAction} ([with <user.modelSource>] <user.modelSimplePrompt> | <user.modelSimplePrompt> [with] <user.modelSource>)$:
     user.gpt_apply_prompt(modelSimplePrompt, model, modelThread or "", modelSource or "", modelAction)
+
+{user.model} [{user.modelThread}] {user.modelAction} <user.modelSimplePrompt> with <user.prose>$:
+    user.gpt_apply_prompt(modelSimplePrompt, model, modelThread or "", prose, modelAction)
 
 # Select the last GPT response so you can edit it further
 {user.model} take response: user.gpt_select_last()
