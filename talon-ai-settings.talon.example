@@ -22,6 +22,9 @@ settings():
     # Disable notifications for nominal behavior. Useful on Windows where notifications are
     # throttled.
     # user.model_verbose_notifications = false
+    
+    # Path to the markitdown CLI executable for HTML to markdown conversion
+    # user.model_markitdown_path = "/path/to/markitdown"
 
 # Use codeium instead of Github Copilot
 # tag(): user.codeium

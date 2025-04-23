@@ -8,34 +8,60 @@ from ..lib.modelConfirmationGUI import confirmation_gui
 from ..lib.modelHelpers import (
     Content,
     InlineContent,
+    convert_html_to_markdown,
     extract_message,
     format_message,
     get_clipboard_content,
+    get_clipboard_html,
+    get_selected_html,
     messages_to_string,
     notify,
     send_request,
 )
 from ..lib.modelState import GPTState
 from ..lib.modelTypes import GPTMessageItem
-from ..lib.talonSettings import ContentSpec
+from ..lib.talonSettings import ContentSpec, FormattedSource
 
 
-def resolve_source(source: str) -> InlineContent:
-    """Resolve content from a source identifier"""
+def resolve_source(source: str, format_type: Optional[str] = None) -> InlineContent:
+    """Resolve content from a source identifier with optional format conversion"""
     match source:
         case "clipboard":
-            return get_clipboard_content()
+            if format_type == "html":
+                html = get_clipboard_html()
+                if html:
+                    return InlineContent(text=html)
+                error_msg = "GPT Failure: No HTML content found in clipboard"
+                notify(error_msg)
+                raise Exception(error_msg)
+            elif format_type == "markdown":
+                html = get_clipboard_html()
+                if html:
+                    markdown = convert_html_to_markdown(html)
+                    if markdown:
+                        return InlineContent(text=markdown)
+                    error_msg = "GPT Failure: Failed to convert HTML to markdown"
+                    notify(error_msg)
+                    raise Exception(error_msg)
+                error_msg = "GPT Failure: No HTML content found in clipboard"
+                notify(error_msg)
+                raise Exception(error_msg)
+            else:
+                return get_clipboard_content()
         case "context":
             if GPTState.context == []:
-                notify("GPT Failure: Context is empty")
+                error_msg = "GPT Failure: Context is empty"
+                notify(error_msg)
                 raise Exception(
-                    "GPT Failure: User applied a prompt to the phrase context, but there was no context stored"
+                    f"{error_msg}. User applied a prompt to the phrase context, but there was no context stored"
                 )
             return InlineContent(text=messages_to_string(GPTState.context))
         case "gptResponse":
             if GPTState.last_response == "":
+                error_msg = "GPT Failure: No GPT response stored"
+                notify(error_msg)
                 raise Exception(
-                    "GPT Failure: User applied a prompt to the phrase GPT response, but there was no GPT response stored"
+                    f"{error_msg}. User applied a prompt to the phrase GPT response, but there was no GPT response stored"
                 )
             return InlineContent(text=GPTState.last_response)
         case "lastTalonDictation":
@@ -44,12 +70,33 @@ def resolve_source(source: str) -> InlineContent:
                 actions.user.clear_last_phrase()
                 return InlineContent(text=last_output)
             else:
-                notify("GPT Failure: No last dictation to reformat")
+                error_msg = "GPT Failure: No last dictation to reformat"
+                notify(error_msg)
                 raise Exception(
-                    "GPT Failure: User applied a prompt to the phrase last Talon Dictation, but there was no text to reformat"
+                    f"{error_msg}. User applied a prompt to the phrase last Talon Dictation, but there was no text to reformat"
                 )
         case "this" | _:
-            return InlineContent(text=actions.edit.selected_text())
+            if format_type == "html":
+                html = get_selected_html()
+                if html:
+                    return InlineContent(text=html)
+                error_msg = "GPT Failure: No HTML content found in selection"
+                notify(error_msg)
+                raise Exception(error_msg)
+            elif format_type == "markdown":
+                html = get_selected_html()
+                if html:
+                    markdown = convert_html_to_markdown(html)
+                    if markdown:
+                        return InlineContent(text=markdown)
+                    error_msg = "GPT Failure: Failed to convert HTML to markdown"
+                    notify(error_msg)
+                    raise Exception(error_msg)
+                error_msg = "GPT Failure: No HTML content found in selection"
+                notify(error_msg)
+                raise Exception(error_msg)
+            else:
+                return InlineContent(text=actions.edit.selected_text())
 
 
 mod = Module()
@@ -391,6 +438,21 @@ class UserActions:
             else:
                 return None
 
+        # If it's a formatted source
+        elif content_spec.formatted_source:
+            source = content_spec.formatted_source.source
+            format_type = content_spec.formatted_source.format
+
+            # Get the content with the specified format
+            inline_content = resolve_source(source, format_type)
+
+            if inline_content.image_bytes:
+                return Content(image_bytes=inline_content.image_bytes)
+            elif inline_content.text:
+                return Content(text=inline_content.text)
+            else:
+                return None
+
         # Regular source resolution
         elif content_spec.source:
             inline_content = resolve_source(content_spec.source)
@@ -403,6 +465,6 @@ class UserActions:
                 return None
 
         else:
-            raise ValueError(
-                "Invalid ContentSpec: must specify either fragment, source, source_as_fragment, or attachment"
-            )
+            error_msg = "Invalid ContentSpec: must specify either fragment, source, source_as_fragment, attachment, or formatted_source"
+            notify(error_msg)
+            raise ValueError(error_msg)

@@ -166,6 +166,59 @@ def get_clipboard_content() -> InlineContent:
         return InlineContent(text=clip.text())
 
 
+def get_clipboard_html() -> Optional[str]:
+    """Get HTML content from the clipboard"""
+    try:
+        mime = clip.mime()
+        if mime and mime.html:
+            return mime.html
+        notify("No HTML content found in clipboard")
+        return None
+    except Exception as e:
+        notify(f"Error getting HTML from clipboard: {str(e)}")
+        return None
+
+
+def get_selected_html() -> Optional[str]:
+    """Get HTML content from the selected text"""
+    timeout = settings.get("user.selected_text_timeout")
+    with clip.capture(timeout) as s:
+        actions.edit.copy()
+    
+    try:
+        return s.mime().html if s.mime() and s.mime().html else None
+    except clip.NoChange:
+        return None
+
+
+def convert_html_to_markdown(html: str) -> Optional[str]:
+    """Convert HTML to markdown using markitdown CLI"""
+    try:
+        markitdown_path: str = settings.get("user.model_markitdown_path")  # type: ignore
+        
+        # Add -x html flag to specify format and -c utf8 for encoding
+        result = subprocess.run(
+            [markitdown_path, "-x", "html", "-c", "utf8"],
+            input=html.encode('utf-8'),
+            capture_output=True,
+            check=True,
+            creationflags=(
+                subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0  # type: ignore
+            ),
+        )
+        
+        output_encoding = "cp1252" if platform.system() == "Windows" else "utf-8"
+        markdown = result.stdout.decode(output_encoding).strip()
+        return markdown
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr.decode() if e.stderr else str(e)
+        notify(f"Error converting HTML to markdown: {error_msg}")
+        return None
+    except Exception as e:
+        notify(f"Error converting HTML to markdown: {str(e)}")
+        return None
+
+
 def send_request(
     prompt: GPTMessageItem,
     content: Optional[Content],

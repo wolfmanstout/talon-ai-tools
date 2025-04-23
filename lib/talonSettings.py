@@ -19,6 +19,7 @@ mod.list(
     "modelFragmentPrefix", desc="Prefix to prepend to content when using as a fragment"
 )
 mod.list("modelThread", desc="Which conversation thread to continue")
+mod.list("modelFormat", desc="Format to convert clipboard content to")
 
 
 @dataclass
@@ -28,11 +29,18 @@ class SourceAsFragment:
 
 
 @dataclass
+class FormattedSource:
+    source: str
+    format: str
+
+
+@dataclass
 class ContentSpec:
     source: Optional[str] = None
     fragment: Optional[str] = None
     source_as_fragment: Optional[SourceAsFragment] = None
     attachment: Optional[str] = None
+    formatted_source: Optional[FormattedSource] = None
 
 
 # Individual captures for different source types
@@ -64,12 +72,20 @@ def modelSourceAsAttachment(m) -> ContentSpec:
     return ContentSpec(attachment=m.modelSource)
 
 
+@mod.capture(rule="({user.modelSource} as {user.modelFormat})")
+def modelSourceAsFormat(m) -> ContentSpec:
+    """Source with format conversion capture"""
+    return ContentSpec(
+        formatted_source=FormattedSource(source=m.modelSource, format=m.modelFormat)
+    )
+
+
 # Combined capture for all source types
 @mod.capture(
-    rule="<user.modelSourceSimple> | <user.modelFragmentSimple> | <user.modelSourceAsFragment> | <user.modelSourceAsAttachment>"
+    rule="<user.modelSourceSimple> | <user.modelFragmentSimple> | <user.modelSourceAsFragment> | <user.modelSourceAsAttachment> | <user.modelSourceAsFormat>"
 )
 def modelSource(m) -> ContentSpec:
-    """Capture that allows different types of sources, including fragments, source-as-fragment patterns, and attachments"""
+    """Capture that allows different types of sources, including fragments, source-as-fragment patterns, attachments, and formatted sources"""
     return m[0]
 
 
@@ -156,4 +172,11 @@ mod.setting(
     type=int,
     default=80,
     desc="The default window width (in characters) for showing model output",
+)
+
+mod.setting(
+    "model_markitdown_path",
+    type=str,
+    default="markitdown",
+    desc="Path to the markitdown CLI executable for HTML to markdown conversion",
 )
