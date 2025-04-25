@@ -1,11 +1,13 @@
 # Clipboard Format Enhancement Plan
 
 ## Overview
+
 Add support for "clip as html" and "clip as markdown" functionality to allow users to access HTML content from the clipboard and optionally convert it to markdown using the markitdown CLI tool.
 
 ## Implementation Plan
 
 1. Create a new list file `GPT/lists/modelFormat.talon-list`:
+
    ```
    list: user.modelFormat
    -
@@ -14,6 +16,7 @@ Add support for "clip as html" and "clip as markdown" functionality to allow use
    ```
 
 2. In `lib/talonSettings.py`:
+
    - Add a setting for markitdown path
    - Add a list definition for modelFormat
    - Update ContentSpec to include format
@@ -21,6 +24,7 @@ Add support for "clip as html" and "clip as markdown" functionality to allow use
    - Update the combined modelSource capture to include the new rule
 
 3. In `lib/modelHelpers.py`:
+
    - Add function `get_clipboard_html()` to get HTML from clipboard
    - Add function `convert_html_to_markdown()` to use markitdown CLI
 
