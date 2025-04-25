@@ -2,7 +2,7 @@
 
 ## Commands
 
-- **Linting**: `black .` and `isort .` (configured in pyproject.toml)
+- **Linting**: `pre-commit run`
 - **Type checking**: `pyright .`
 - **Testing**:
   - Push changes to local Talon user directory with `sync_talon_repo`.
