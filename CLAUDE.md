@@ -10,6 +10,7 @@
   - Use `tail /mnt/c/Users/james/AppData/Roaming/talon/talon.log` to view recent logs (adding flags as needed to view more logs).
   - Changed files will show up in logs as `DEBUG [~] c:\path\to\file`, with possible `WARNING` or `ERROR` lines shown afterwards.
   - The user will need to manually test any changed functionality.
+- **Committing**: Always run `sync_talon_repo` after committing.
 
 ## Code Style Guidelines
 

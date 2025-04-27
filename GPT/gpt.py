@@ -23,31 +23,60 @@ from ..lib.modelTypes import GPTMessageItem
 from ..lib.talonSettings import ContentSpec, FormattedSource
 
 
+def handle_html_format(html: Optional[str], source_name: str) -> InlineContent:
+    """Handle HTML format retrieval with appropriate error messaging"""
+    if html:
+        return InlineContent(text=html)
+    error_msg = f"GPT Failure: No HTML content found in {source_name}"
+    notify(error_msg)
+    raise Exception(error_msg)
+
+
+def handle_markdown_format(html: Optional[str], source_name: str) -> InlineContent:
+    """Handle markdown conversion with appropriate error messaging"""
+    if html:
+        markdown = convert_html_to_markdown(html)
+        if markdown:
+            return InlineContent(text=markdown)
+        error_msg = "GPT Failure: Failed to convert HTML to markdown"
+        notify(error_msg)
+        raise Exception(error_msg)
+    error_msg = f"GPT Failure: No HTML content found in {source_name}"
+    notify(error_msg)
+    raise Exception(error_msg)
+
+
+def handle_auto_format(html: Optional[str], fallback: InlineContent) -> InlineContent:
+    """Auto-convert HTML to markdown if available, otherwise use fallback content"""
+    if html:
+        markdown = convert_html_to_markdown(html)
+        if markdown:
+            return InlineContent(text=markdown)
+        # If conversion fails, fail loudly
+        error_msg = "GPT Failure: Failed to convert HTML to markdown"
+        notify(error_msg)
+        raise Exception(error_msg)
+    # Only fall back to plain text if no HTML is available
+    return fallback
+
+
 def resolve_source(source: str, format_type: Optional[str] = None) -> InlineContent:
     """Resolve content from a source identifier with optional format conversion"""
     match source:
         case "clipboard":
             if format_type == "html":
                 html = get_clipboard_html()
-                if html:
-                    return InlineContent(text=html)
-                error_msg = "GPT Failure: No HTML content found in clipboard"
-                notify(error_msg)
-                raise Exception(error_msg)
+                return handle_html_format(html, "clipboard")
             elif format_type == "markdown":
                 html = get_clipboard_html()
-                if html:
-                    markdown = convert_html_to_markdown(html)
-                    if markdown:
-                        return InlineContent(text=markdown)
-                    error_msg = "GPT Failure: Failed to convert HTML to markdown"
-                    notify(error_msg)
-                    raise Exception(error_msg)
-                error_msg = "GPT Failure: No HTML content found in clipboard"
-                notify(error_msg)
-                raise Exception(error_msg)
-            else:
+                return handle_markdown_format(html, "clipboard")
+            elif format_type == "text":
+                # Explicitly use plain text without checking for HTML
                 return get_clipboard_content()
+            else:
+                # Auto-convert HTML to markdown if available, otherwise use plain text
+                html = get_clipboard_html()
+                return handle_auto_format(html, get_clipboard_content())
         case "context":
             if GPTState.context == []:
                 error_msg = "GPT Failure: Context is empty"
@@ -78,25 +107,18 @@ def resolve_source(source: str, format_type: Optional[str] = None) -> InlineCont
         case "this" | _:
             if format_type == "html":
                 html = get_selected_html()
-                if html:
-                    return InlineContent(text=html)
-                error_msg = "GPT Failure: No HTML content found in selection"
-                notify(error_msg)
-                raise Exception(error_msg)
+                return handle_html_format(html, "selection")
             elif format_type == "markdown":
                 html = get_selected_html()
-                if html:
-                    markdown = convert_html_to_markdown(html)
-                    if markdown:
-                        return InlineContent(text=markdown)
-                    error_msg = "GPT Failure: Failed to convert HTML to markdown"
-                    notify(error_msg)
-                    raise Exception(error_msg)
-                error_msg = "GPT Failure: No HTML content found in selection"
-                notify(error_msg)
-                raise Exception(error_msg)
-            else:
+                return handle_markdown_format(html, "selection")
+            elif format_type == "text":
+                # Explicitly use plain text without checking for HTML
                 return InlineContent(text=actions.edit.selected_text())
+            else:
+                # Auto-convert HTML to markdown if available, otherwise use plain text
+                html = get_selected_html()
+                selected_text = InlineContent(text=actions.edit.selected_text())
+                return handle_auto_format(html, selected_text)
 
 
 mod = Module()

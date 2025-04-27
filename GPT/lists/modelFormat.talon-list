@@ -2,3 +2,4 @@ list: user.modelFormat
 -
 html: html
 markdown: markdown
+text: text
