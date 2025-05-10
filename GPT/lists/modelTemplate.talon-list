@@ -1,0 +1,3 @@
+list: user.modelTemplate
+-
+simon summarize: gh:simonw/summarize

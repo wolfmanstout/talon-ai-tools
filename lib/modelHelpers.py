@@ -39,8 +39,14 @@ class Content:
 
 @dataclass
 class Prompt:
-    user_prompt: str
+    user_prompt: Optional[str] = None
     content: Optional[Content] = None
+    template: Optional[str] = None
+
+    def __post_init__(self):
+        """Validate that at least one of user_prompt or template is provided"""
+        if self.user_prompt is None and self.template is None:
+            raise ValueError("Either user_prompt or template must be provided")
 
 
 # Path to the models.json file
@@ -204,8 +210,8 @@ def convert_html_to_markdown(html: str) -> Optional[str]:
 
         # Add -x html flag to specify format and -c utf8 for encoding
         result = subprocess.run(
-            [markitdown_path, "-x", "html", "-c", "utf8"],
-            input=html.encode("utf-8"),
+            [markitdown_path, "-x", "html"],
+            input=html.encode("utf-8" if platform.system() != "Windows" else "cp1252"),
             capture_output=True,
             check=True,
             creationflags=(
@@ -218,10 +224,10 @@ def convert_html_to_markdown(html: str) -> Optional[str]:
         return markdown
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.decode() if e.stderr else str(e)
-        notify(f"Error converting HTML to markdown: {error_msg}")
+        logging.error(f"Error converting HTML to markdown: {error_msg}")
         return None
     except Exception as e:
-        notify(f"Error converting HTML to markdown: {str(e)}")
+        logging.error(f"Error converting HTML to markdown: {str(e)}")
         return None
 
 
@@ -310,11 +316,15 @@ def send_request_to_api(
     model_id = config["model_id"] if config and "model_id" in config else model
 
     # Create GPTMessageItem from user prompt
-    gpt_prompt = format_message(prompt.user_prompt)
+    if prompt.user_prompt:
+        gpt_prompt = format_message(prompt.user_prompt)
+    else:
+        notify("GPT Failure: No user prompt provided.")
+        raise ValueError("No prompt provided.")
 
     # Prepare content for API request
     api_content: list[GPTMessageItem] = [gpt_prompt]
-    if prompt.content is not None:
+    if prompt.content:
         if prompt.content.image_bytes:
             # If we are processing an image, add it as a second message
             base64_image = base64.b64encode(prompt.content.image_bytes).decode("utf-8")
@@ -331,6 +341,11 @@ def send_request_to_api(
                 gpt_prompt["text"] + '\n\n"""' + prompt.content.text + '"""'  # type: ignore a Prompt has to be of type text
             )
             api_content = [gpt_prompt]
+        else:
+            notify("GPT Failure: Check the Talon Log. Invalid content provided.")
+            raise ValueError(
+                f"Invalid content type. Only text and image content are supported. Received: {prompt.content}"
+            )
 
     # Create request
     request = GPTMessage(
@@ -410,29 +425,6 @@ def send_request_to_llm_cli(
     command: list[str] = [settings.get("user.model_llm_path")]  # type: ignore
     if continue_thread:
         command.append("-c")
-    cmd_input: bytes | None = None
-
-    # Prepare user prompt text
-    user_prompt_text = prompt.user_prompt
-
-    # Handle different content types for LLM CLI
-    if prompt.content is not None:
-        if prompt.content.fragment:
-            # For direct fragment use, pass the fragment name directly
-            command.extend(["-f", prompt.content.fragment])
-        elif prompt.content.image_bytes:
-            # For image content
-            command.extend(["-a", "-"])
-            cmd_input = prompt.content.image_bytes
-        elif prompt.content.attachment:
-            # For external attachment URL
-            command.extend(["-a", prompt.content.attachment])
-        elif prompt.content.text:
-            # For regular text content, embed it in the prompt
-            user_prompt_text = user_prompt_text + '\n\n"""' + prompt.content.text + '"""'
-
-    # Add the prompt after all other arguments have been processed
-    command.append(user_prompt_text)
 
     # Add model option
     command.extend(["-m", model_id])
@@ -456,8 +448,41 @@ def send_request_to_llm_cli(
             else:
                 command.extend(["-o", key, str(value)])
 
+    # Handle template if specified
+    if prompt.template:
+        command.extend(["-t", prompt.template])
+
+    # Add the prompt
+    cmd_input: bytes | None = None
+    if prompt.content:
+        if prompt.content.fragment:
+            # For direct fragment use, pass the fragment name directly
+            command.extend(["-f", prompt.content.fragment])
+        elif prompt.content.image_bytes:
+            # For image content
+            command.extend(["-a", "-"])
+            cmd_input = prompt.content.image_bytes
+        elif prompt.content.attachment:
+            # For external attachment URL
+            command.extend(["-a", prompt.content.attachment])
+        elif prompt.content.text and prompt.user_prompt:
+            # For regular text content with a user prompt, combine them
+            user_prompt_text = (
+                prompt.user_prompt + '\n\n"""' + prompt.content.text + '"""'
+            )
+            command.append(user_prompt_text)
+        elif prompt.content.text:
+            # Just content text, no user prompt
+            command.append(prompt.content.text)
+        else:
+            notify("GPT Failure: Check the Talon Log. Invalid content provided.")
+            raise ValueError(f"Invalid content type. Received: {prompt.content}")
+    # If we have a user prompt but no content
+    elif prompt.user_prompt:
+        command.append(prompt.user_prompt)
+
     # Add system message if available
-    if system_message:
+    if system_message and not prompt.template:
         command.extend(["-s", system_message])
 
     if GPTState.debug_enabled:

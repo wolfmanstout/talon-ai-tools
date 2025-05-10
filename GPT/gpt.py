@@ -21,7 +21,7 @@ from ..lib.modelHelpers import (
 )
 from ..lib.modelState import GPTState
 from ..lib.modelTypes import GPTMessageItem
-from ..lib.talonSettings import ContentSpec, FormattedSource
+from ..lib.talonSettings import ContentSpec
 
 
 def handle_html_format(html: Optional[str], source_name: str) -> InlineContent:
@@ -53,10 +53,7 @@ def handle_auto_format(html: Optional[str], fallback: InlineContent) -> InlineCo
         markdown = convert_html_to_markdown(html)
         if markdown:
             return InlineContent(text=markdown)
-        # If conversion fails, fail loudly
-        error_msg = "GPT Failure: Failed to convert HTML to markdown"
-        notify(error_msg)
-        raise Exception(error_msg)
+        notify("Failed to convert HTML to markdown, falling back to plain text")
     # Only fall back to plain text if no HTML is available
     return fallback
 
@@ -159,10 +156,7 @@ class UserActions:
         Condense the code into a single line such that it can be ran in the terminal.
         """
 
-        prompt = Prompt(
-            user_prompt=prompt_text,
-            content=Content(text=text_to_process)
-        )
+        prompt = Prompt(user_prompt=prompt_text, content=Content(text=text_to_process))
 
         result = gpt_query(
             prompt,
@@ -181,10 +175,7 @@ class UserActions:
        Prioritize SQL queries that are database agnostic.
         """
 
-        prompt = Prompt(
-            user_prompt=prompt_text,
-            content=Content(text=text_to_process)
-        )
+        prompt = Prompt(user_prompt=prompt_text, content=Content(text=text_to_process))
 
         return gpt_query(
             prompt,
@@ -233,12 +224,20 @@ class UserActions:
         thread: str,
         source: Optional[ContentSpec] | str = None,
         destination: str = "",
+        template: Optional[str] = None,
     ) -> GPTMessageItem:
-        """Apply an arbitrary prompt to arbitrary text
+        """Apply a prompt or template to arbitrary text
+
+        The prompt_text is required but can be empty if a template is provided.
 
         If source is a non-empty string, it will be treated as direct text content.
         If source is a ContentSpec, it will be processed through gpt_get_source_text.
         """
+        # Validate that we have a prompt_text or template
+        if not prompt_text and not template:
+            error = "Either prompt_text or template must be provided"
+            notify(error)
+            raise ValueError(error)
 
         if source:
             if isinstance(source, str) and source:
@@ -252,14 +251,9 @@ class UserActions:
         else:
             content = actions.user.gpt_get_source_text(ContentSpec(source="this"))
 
-        prompt = Prompt(
-            user_prompt=prompt_text,
-            content=content
-        )
+        prompt = Prompt(user_prompt=prompt_text, content=content, template=template)
 
-        response = gpt_query(
-            prompt, model, thread, destination
-        )
+        response = gpt_query(prompt, model, thread, destination)
 
         actions.user.gpt_insert_response(response, destination)
         return response
@@ -269,10 +263,19 @@ class UserActions:
         model: str,
         thread: str,
         source: list[str],
+        template: Optional[str] = None,
     ) -> str:
-        """Apply a prompt to text from Cursorless and return a string result.
+        """Apply a prompt or template to text from Cursorless and return a string result.
         This function is specifically designed for Cursorless integration
-        and does not trigger insertion actions."""
+        and does not trigger insertion actions.
+
+        The prompt_text is required but can be empty if a template is provided.
+        """
+        # Validate that we have a prompt_text or template
+        if not prompt_text and not template:
+            error = "Either prompt_text or template must be provided"
+            notify(error)
+            raise ValueError(error)
 
         # Join the list into a single string
         source_text = "\n".join(source)
@@ -281,10 +284,7 @@ class UserActions:
         content = Content(text=source_text)
 
         # Create the prompt object
-        prompt = Prompt(
-            user_prompt=prompt_text,
-            content=content
-        )
+        prompt = Prompt(user_prompt=prompt_text, content=content, template=template)
 
         # Send the request but don't insert the response (Cursorless will handle insertion)
         response = gpt_query(prompt, model, thread, "")
@@ -328,10 +328,7 @@ class UserActions:
         if last_output:
             actions.user.clear_last_phrase()
 
-            prompt = Prompt(
-                user_prompt=prompt_text,
-                content=Content(text=last_output)
-            )
+            prompt = Prompt(user_prompt=prompt_text, content=Content(text=last_output))
 
             return extract_message(
                 gpt_query(
