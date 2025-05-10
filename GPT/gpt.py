@@ -8,6 +8,7 @@ from ..lib.modelConfirmationGUI import confirmation_gui
 from ..lib.modelHelpers import (
     Content,
     InlineContent,
+    Prompt,
     convert_html_to_markdown,
     extract_message,
     format_message,
@@ -129,8 +130,7 @@ mod.tag(
 
 
 def gpt_query(
-    prompt: GPTMessageItem,
-    content: Optional[Content],
+    prompt: Prompt,
     model: str,
     thread: str,
     destination: str = "",
@@ -140,7 +140,7 @@ def gpt_query(
     # Reset state before pasting
     GPTState.last_was_pasted = False
 
-    response = send_request(prompt, content, model, thread, destination)
+    response = send_request(prompt, model, thread, destination)
     GPTState.last_response = extract_message(response)
     return response
 
@@ -153,15 +153,19 @@ class UserActions:
         if shell_name is None:
             raise Exception("GPT Error: Shell name is not set. Set it in the settings.")
 
-        prompt = f"""
+        prompt_text = f"""
         Generate a {shell_name} shell command that will perform the given task.
         Only include the code. Do not include any comments, backticks, or natural language explanations. Do not output the shell name, only the code that is valid {shell_name}.
         Condense the code into a single line such that it can be ran in the terminal.
         """
 
+        prompt = Prompt(
+            user_prompt=prompt_text,
+            content=Content(text=text_to_process)
+        )
+
         result = gpt_query(
-            format_message(prompt),
-            Content(text=text_to_process),
+            prompt,
             model,
             thread,
         )
@@ -170,16 +174,20 @@ class UserActions:
     def gpt_generate_sql(text_to_process: str, model: str, thread: str) -> str:
         """Generate a SQL query from a spoken instruction"""
 
-        prompt = """
+        prompt_text = """
        Generate SQL to complete a given request.
        Output only the SQL in one line without newlines.
        Do not output comments, backticks, or natural language explanations.
        Prioritize SQL queries that are database agnostic.
         """
 
+        prompt = Prompt(
+            user_prompt=prompt_text,
+            content=Content(text=text_to_process)
+        )
+
         return gpt_query(
-            format_message(prompt),
-            Content(text=text_to_process),
+            prompt,
             model,
             thread,
         ).get("text", "")
@@ -220,7 +228,7 @@ class UserActions:
             actions.edit.extend_left()
 
     def gpt_apply_prompt(
-        prompt: str,
+        prompt_text: str,
         model: str,
         thread: str,
         source: Optional[ContentSpec] | str = None,
@@ -244,15 +252,20 @@ class UserActions:
         else:
             content = actions.user.gpt_get_source_text(ContentSpec(source="this"))
 
+        prompt = Prompt(
+            user_prompt=prompt_text,
+            content=content
+        )
+
         response = gpt_query(
-            format_message(prompt), content, model, thread, destination
+            prompt, model, thread, destination
         )
 
         actions.user.gpt_insert_response(response, destination)
         return response
 
     def gpt_apply_prompt_for_cursorless(
-        prompt: str,
+        prompt_text: str,
         model: str,
         thread: str,
         source: list[str],
@@ -267,8 +280,14 @@ class UserActions:
         # Create content with the text
         content = Content(text=source_text)
 
+        # Create the prompt object
+        prompt = Prompt(
+            user_prompt=prompt_text,
+            content=content
+        )
+
         # Send the request but don't insert the response (Cursorless will handle insertion)
-        response = gpt_query(format_message(prompt), content, model, thread, "")
+        response = gpt_query(prompt, model, thread, "")
 
         # Return just the text string
         return extract_message(response)
@@ -304,14 +323,19 @@ class UserActions:
 
     def gpt_reformat_last(how_to_reformat: str, model: str, thread: str) -> str:
         """Reformat the last model output"""
-        PROMPT = f"""The last phrase was written using voice dictation. It has an error with spelling, grammar, or just general misrecognition due to a lack of context. Please reformat the following text to correct the error with the context that it was {how_to_reformat}."""
+        prompt_text = f"""The last phrase was written using voice dictation. It has an error with spelling, grammar, or just general misrecognition due to a lack of context. Please reformat the following text to correct the error with the context that it was {how_to_reformat}."""
         last_output = actions.user.get_last_phrase()
         if last_output:
             actions.user.clear_last_phrase()
+
+            prompt = Prompt(
+                user_prompt=prompt_text,
+                content=Content(text=last_output)
+            )
+
             return extract_message(
                 gpt_query(
-                    format_message(PROMPT),
-                    Content(text=last_output),
+                    prompt,
                     model,
                     thread,
                 )

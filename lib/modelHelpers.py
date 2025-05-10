@@ -37,6 +37,12 @@ class Content:
     attachment: Optional[str] = None
 
 
+@dataclass
+class Prompt:
+    user_prompt: str
+    content: Optional[Content] = None
+
+
 # Path to the models.json file
 MODELS_PATH = Path(__file__).parent.parent / "models.json"
 
@@ -220,8 +226,7 @@ def convert_html_to_markdown(html: str) -> Optional[str]:
 
 
 def send_request(
-    prompt: GPTMessageItem,
-    content: Optional[Content],
+    prompt: Prompt,
     model: str,
     thread: str,
     destination: str = "",
@@ -280,21 +285,20 @@ def send_request(
     model_endpoint: str = settings.get("user.model_endpoint")  # type: ignore
     if model_endpoint == "llm":
         response = send_request_to_llm_cli(
-            prompt, content, system_message, model, continue_thread
+            prompt, system_message, model, continue_thread
         )
     else:
         if continue_thread:
             notify(
                 "Warning: Thread continuation is only supported when using setting user.model_endpoint = 'llm'"
             )
-        response = send_request_to_api(prompt, content, system_message, model)
+        response = send_request_to_api(prompt, system_message, model)
 
     return response
 
 
 def send_request_to_api(
-    prompt: GPTMessageItem,
-    content: Optional[Content],
+    prompt: Prompt,
     system_message: str,
     model: str,
 ) -> GPTMessageItem:
@@ -305,25 +309,28 @@ def send_request_to_api(
     # Use model_id from configuration if available
     model_id = config["model_id"] if config and "model_id" in config else model
 
+    # Create GPTMessageItem from user prompt
+    gpt_prompt = format_message(prompt.user_prompt)
+
     # Prepare content for API request
-    api_content: list[GPTMessageItem] = [prompt]
-    if content is not None:
-        if content.image_bytes:
+    api_content: list[GPTMessageItem] = [gpt_prompt]
+    if prompt.content is not None:
+        if prompt.content.image_bytes:
             # If we are processing an image, add it as a second message
-            base64_image = base64.b64encode(content.image_bytes).decode("utf-8")
+            base64_image = base64.b64encode(prompt.content.image_bytes).decode("utf-8")
             api_content = [
-                prompt,
+                gpt_prompt,
                 {
                     "type": "image_url",
                     "image_url": {"url": f"data:image/;base64,{base64_image}"},
                 },
             ]
-        elif content.text:
+        elif prompt.content.text:
             # If we are processing text content, add it to the same message
-            prompt["text"] = (
-                prompt["text"] + '\n\n"""' + content.text + '"""'  # type: ignore a Prompt has to be of type text
+            gpt_prompt["text"] = (
+                gpt_prompt["text"] + '\n\n"""' + prompt.content.text + '"""'  # type: ignore a Prompt has to be of type text
             )
-            api_content = [prompt]
+            api_content = [gpt_prompt]
 
     # Create request
     request = GPTMessage(
@@ -387,8 +394,7 @@ def send_request_to_api(
 
 
 def send_request_to_llm_cli(
-    prompt: GPTMessageItem,
-    content: Optional[Content],
+    prompt: Prompt,
     system_message: str,
     model: str,
     continue_thread: bool,
@@ -406,26 +412,27 @@ def send_request_to_llm_cli(
         command.append("-c")
     cmd_input: bytes | None = None
 
+    # Prepare user prompt text
+    user_prompt_text = prompt.user_prompt
+
     # Handle different content types for LLM CLI
-    if content is not None:
-        if content.fragment:
+    if prompt.content is not None:
+        if prompt.content.fragment:
             # For direct fragment use, pass the fragment name directly
-            command.extend(["-f", content.fragment])
-        elif content.image_bytes:
+            command.extend(["-f", prompt.content.fragment])
+        elif prompt.content.image_bytes:
             # For image content
             command.extend(["-a", "-"])
-            cmd_input = content.image_bytes
-        elif content.attachment:
+            cmd_input = prompt.content.image_bytes
+        elif prompt.content.attachment:
             # For external attachment URL
-            command.extend(["-a", content.attachment])
-        elif content.text:
+            command.extend(["-a", prompt.content.attachment])
+        elif prompt.content.text:
             # For regular text content, embed it in the prompt
-            prompt["text"] = (
-                prompt["text"] + '\n\n"""' + content.text + '"""'  # type: ignore
-            )
+            user_prompt_text = user_prompt_text + '\n\n"""' + prompt.content.text + '"""'
 
     # Add the prompt after all other arguments have been processed
-    command.append(prompt["text"])  # type: ignore
+    command.append(user_prompt_text)
 
     # Add model option
     command.extend(["-m", model_id])
