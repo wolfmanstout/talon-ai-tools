@@ -2,7 +2,7 @@
 
 ## Commands
 
-- **Linting**: `pre-commit run`
+- **Linting**: `ruff format && ruff check --fix && pre-commit run --files` followed by a list of changed files.
 - **Type checking**: `pyright .`
 - **Testing**:
   - Push changes to local Talon user directory with `sync_talon_repo`.
