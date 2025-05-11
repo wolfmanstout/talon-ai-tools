@@ -67,15 +67,8 @@ def resolve_source(source: str, format_type: Optional[str] = None) -> InlineCont
                 )
 
         case "this" | _:
-            # Create a ClipboardContent that contains the selected text and HTML if available
-            selection_content = fetch_from_selection()
-
-            # If there's no selection text, use the current selection directly
-            if not selection_content.text:
-                selection_content.text = actions.edit.selected_text()
-
             # This is the default source, so we allow empty content to be returned.
-            return convert_content(selection_content, format_type)
+            return convert_content(fetch_from_selection(), format_type)
 
 
 mod = Module()
