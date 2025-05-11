@@ -164,14 +164,14 @@ class ClipboardContent:
     html: Optional[str] = None
     image_bytes: Optional[bytes] = None
 
-    def has_content(self) -> bool:
-        return any([self.text, self.html, self.image_bytes])
-
 
 @dataclass
 class InlineContent:
     text: Optional[str] = None
     image_bytes: Optional[bytes] = None
+
+    def has_content(self) -> bool:
+        return any([self.text, self.image_bytes])
 
 
 def fetch_from_clipboard() -> ClipboardContent:
@@ -191,11 +191,6 @@ def fetch_from_clipboard() -> ClipboardContent:
     mime = clip.mime()
     if mime and mime.html:
         content.html = mime.html
-
-    if not content.has_content():
-        error = "User requested info from the clipboard but there is nothing in it"
-        notify(error)
-        raise RuntimeError(error)
 
     return content
 
@@ -237,7 +232,7 @@ def convert_content(
         notify(error_msg)
         raise Exception(error_msg)
 
-    if format_type == "markdown":
+    elif format_type == "markdown":
         if content.html:
             markdown = convert_html_to_markdown(content.html)
             if markdown:
@@ -249,7 +244,7 @@ def convert_content(
         notify(error_msg)
         raise Exception(error_msg)
 
-    if format_type == "text":
+    elif format_type == "text":
         if content.text:
             return InlineContent(text=content.text)
         error_msg = "No text content found"
@@ -257,7 +252,7 @@ def convert_content(
         raise Exception(error_msg)
 
     # For unspecified format type
-    if format_type is None:
+    elif format_type is None:
         # Prioritize image if available
         if content.image_bytes:
             return InlineContent(image_bytes=content.image_bytes)
@@ -276,10 +271,12 @@ def convert_content(
         if content.text:
             return InlineContent(text=content.text)
 
-    # If we get here with no content, this is an error
-    error_msg = f"No content available: {content}"
-    notify(error_msg)
-    raise Exception(error_msg)
+        return InlineContent()
+
+    else:
+        error_msg = f"Unknown format type: {format_type}"
+        notify(error_msg)
+        raise Exception(error_msg)
 
 
 def convert_html_to_markdown(html: str) -> Optional[str]:

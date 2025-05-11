@@ -27,7 +27,14 @@ def resolve_source(source: str, format_type: Optional[str] = None) -> InlineCont
     """Resolve content from a source identifier with optional format conversion"""
     match source:
         case "clipboard":
-            return convert_content(fetch_from_clipboard(), format_type)
+            content = convert_content(fetch_from_clipboard(), format_type)
+            if not content.has_content():
+                error_msg = "GPT Failure: Clipboard is empty"
+                notify(error_msg)
+                raise Exception(
+                    f"{error_msg}. User applied a prompt to the clipboard, but it was empty"
+                )
+            return content
 
         case "context":
             if GPTState.context == []:
@@ -67,6 +74,7 @@ def resolve_source(source: str, format_type: Optional[str] = None) -> InlineCont
             if not selection_content.text:
                 selection_content.text = actions.edit.selected_text()
 
+            # This is the default source, so we allow empty content to be returned.
             return convert_content(selection_content, format_type)
 
 
