@@ -1,3 +1,5 @@
 list: user.modelTemplate
 -
 simon summarize: gh:simonw/summarize
+simon alt text: gh:simonw/alt
+simon podcast highlights: gh:simonw/podcast-highlights
