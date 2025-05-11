@@ -159,48 +159,127 @@ def extract_message(content: GPTMessageItem) -> str:
 
 
 @dataclass
+class ClipboardContent:
+    text: Optional[str] = None
+    html: Optional[str] = None
+    image_bytes: Optional[bytes] = None
+
+    def has_content(self) -> bool:
+        return any([self.text, self.html, self.image_bytes])
+
+
+@dataclass
 class InlineContent:
     text: Optional[str] = None
     image_bytes: Optional[bytes] = None
 
 
-def get_clipboard_content() -> InlineContent:
-    """Get content from the clipboard as either text or image bytes"""
+def fetch_from_clipboard() -> ClipboardContent:
+    """Get all available content from clipboard at once"""
+    content = ClipboardContent()
+
+    # Get image if available
     clipped_image = clip.image()
     if clipped_image:
-        data = clipped_image.encode().data()
-        return InlineContent(image_bytes=data)
-    else:
-        if not clip.text():
-            raise RuntimeError(
-                "User requested info from the clipboard but there is nothing in it"
-            )
-        return InlineContent(text=clip.text())
+        content.image_bytes = clipped_image.encode().data()
+
+    # Get text if available
+    if clip.text():
+        content.text = clip.text()
+
+    # Get HTML if available
+    mime = clip.mime()
+    if mime and mime.html:
+        content.html = mime.html
+
+    if not content.has_content():
+        error = "User requested info from the clipboard but there is nothing in it"
+        notify(error)
+        raise RuntimeError(error)
+
+    return content
 
 
-def get_clipboard_html() -> Optional[str]:
-    """Get HTML content from the clipboard"""
-    try:
-        mime = clip.mime()
-        if mime and mime.html:
-            return mime.html
-        notify("No HTML content found in clipboard")
-        return None
-    except Exception as e:
-        notify(f"Error getting HTML from clipboard: {str(e)}")
-        return None
+def fetch_from_selection() -> ClipboardContent:
+    """Get all available content from selection"""
+    content = ClipboardContent()
 
-
-def get_selected_html() -> Optional[str]:
-    """Get HTML content from the selected text"""
+    # Capture clipboard with selection
     timeout = settings.get("user.selected_text_timeout")
     with clip.capture(timeout) as s:
         actions.edit.copy()
 
+    # Get text
     try:
-        return s.mime().html if s.mime() and s.mime().html else None
+        content.text = s.text()
     except clip.NoChange:
-        return None
+        pass
+
+    # Get HTML if available
+    try:
+        if s.mime() and s.mime().html:
+            content.html = s.mime().html
+    except clip.NoChange:
+        pass
+
+    return content
+
+
+def convert_content(
+    content: ClipboardContent, format_type: Optional[str]
+) -> InlineContent:
+    """Convert ClipboardContent to InlineContent with desired format"""
+    # Handle specific format requests
+    if format_type == "html":
+        if content.html:
+            return InlineContent(text=content.html)
+        error_msg = "No HTML content found"
+        notify(error_msg)
+        raise Exception(error_msg)
+
+    if format_type == "markdown":
+        if content.html:
+            markdown = convert_html_to_markdown(content.html)
+            if markdown:
+                return InlineContent(text=markdown)
+            error_msg = "Failed to convert HTML to markdown"
+            notify(error_msg)
+            raise Exception(error_msg)
+        error_msg = "No HTML content found to convert to markdown"
+        notify(error_msg)
+        raise Exception(error_msg)
+
+    if format_type == "text":
+        if content.text:
+            return InlineContent(text=content.text)
+        error_msg = "No text content found"
+        notify(error_msg)
+        raise Exception(error_msg)
+
+    # For unspecified format type
+    if format_type is None:
+        # Prioritize image if available
+        if content.image_bytes:
+            return InlineContent(image_bytes=content.image_bytes)
+
+        # Try auto-converting HTML to markdown
+        if content.html:
+            markdown = convert_html_to_markdown(content.html)
+            if markdown:
+                return InlineContent(text=markdown)
+            # If conversion fails, just log and continue to text
+            logging.warning(
+                "Failed to convert HTML to markdown, falling back to plain text"
+            )
+
+        # Use text as fallback
+        if content.text:
+            return InlineContent(text=content.text)
+
+    # If we get here with no content, this is an error
+    error_msg = f"No content available: {content}"
+    notify(error_msg)
+    raise Exception(error_msg)
 
 
 def convert_html_to_markdown(html: str) -> Optional[str]:
@@ -514,17 +593,3 @@ def send_request_to_llm_cli(
     except Exception as e:
         notify("GPT Failure: Check the Talon Log")
         raise e
-
-
-def get_clipboard_image():
-    try:
-        clipped_image = clip.image()
-        if not clipped_image:
-            raise Exception("No image found in clipboard")
-
-        data = clipped_image.encode().data()
-        base64_image = base64.b64encode(data).decode("utf-8")
-        return base64_image
-    except Exception as e:
-        print(e)
-        raise Exception("Invalid image in clipboard")
