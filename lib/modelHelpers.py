@@ -263,9 +263,9 @@ def convert_content(
             if markdown:
                 return InlineContent(text=markdown)
             # If conversion fails, just log and continue to text
-            logging.warning(
-                "Failed to convert HTML to markdown, falling back to plain text"
-            )
+            warning = "Failed to convert HTML to markdown, falling back to plain text"
+            notify(warning)
+            logging.warning(warning)
 
         # Use text as fallback
         if content.text:
@@ -281,25 +281,30 @@ def convert_content(
 
 def convert_html_to_markdown(html: str) -> Optional[str]:
     """Convert HTML to markdown using markitdown CLI"""
+    # Configure output encoding
+    process_env = os.environ.copy()
+    if platform.system() == "Windows":
+        process_env["PYTHONUTF8"] = "1"  # For Python 3.7+ to enable UTF-8 mode
+    # On other platforms, UTF-8 is also the common/expected encoding.
+    text_encoding = "utf-8"
+
     try:
         markitdown_path: str = settings.get("user.model_markitdown_path")  # type: ignore
-
-        # Add -x html flag to specify format and -c utf8 for encoding
         result = subprocess.run(
             [markitdown_path, "-x", "html"],
-            input=html.encode("utf-8" if platform.system() != "Windows" else "cp1252"),
+            input=html.encode(text_encoding),
             capture_output=True,
             check=True,
             creationflags=(
                 subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0  # type: ignore
             ),
+            env=process_env if platform.system() == "Windows" else None,
         )
 
-        output_encoding = "cp1252" if platform.system() == "Windows" else "utf-8"
-        markdown = result.stdout.decode(output_encoding).strip()
+        markdown = result.stdout.decode(text_encoding).strip()
         return markdown
     except subprocess.CalledProcessError as e:
-        error_msg = e.stderr.decode() if e.stderr else str(e)
+        error_msg = e.stderr.decode(text_encoding) if e.stderr else str(e)
         logging.error(f"Error converting HTML to markdown: {error_msg}")
         return None
     except Exception as e:
