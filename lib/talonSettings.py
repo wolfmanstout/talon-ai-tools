@@ -20,7 +20,7 @@ mod.list(
     "modelFragmentPrefix", desc="Prefix to prepend to content when using as a fragment"
 )
 mod.list("modelThread", desc="Which conversation thread to continue")
-mod.list("modelFormat", desc="Format to convert clipboard content to")
+mod.list("modelSourceFormat", desc="Format to convert source clipboard content to")
 
 
 @dataclass
@@ -73,11 +73,13 @@ def modelSourceAsAttachment(m) -> ContentSpec:
     return ContentSpec(attachment=m.modelSource)
 
 
-@mod.capture(rule="({user.modelSource} as {user.modelFormat})")
+@mod.capture(rule="({user.modelSource} as {user.modelSourceFormat})")
 def modelSourceAsFormat(m) -> ContentSpec:
     """Source with format conversion capture"""
     return ContentSpec(
-        formatted_source=FormattedSource(source=m.modelSource, format=m.modelFormat)
+        formatted_source=FormattedSource(
+            source=m.modelSource, format=m.modelSourceFormat
+        )
     )
 
 

@@ -1,4 +1,4 @@
-list: user.modelFormat
+list: user.modelSourceFormat
 -
 html: html
 markdown: markdown
