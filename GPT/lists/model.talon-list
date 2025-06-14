@@ -10,3 +10,4 @@ gem fast: gemini-flash-no-thinking
 claude: claude-4-sonnet
 mini: 4o-mini
 g p t: 4o
+echo model: echo
