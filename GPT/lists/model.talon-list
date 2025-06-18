@@ -3,11 +3,19 @@ list: user.model
 
 # The default model name
 model: model
+
+# Google
 gem pro: gemini-2.5-pro
 gem flash: gemini-2.5-flash
 gem search: gemini-flash-search
 gem fast: gemini-flash-no-thinking
+
+# Anthropic
 claude: claude-4-sonnet
-mini: 4o-mini
-g p t: 4o
+
+# OpenAI
+four o mini: gpt-4o-mini
+four o: gpt-4o
+
+# Misc
 echo model: echo
