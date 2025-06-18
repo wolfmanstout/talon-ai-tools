@@ -290,18 +290,17 @@ def convert_html_to_markdown(html: str) -> Optional[str]:
 
     try:
         markitdown_path: str = settings.get("user.model_markitdown_path")  # type: ignore
-        result = subprocess.run(
+        output = subprocess.check_output(
             [markitdown_path, "-x", "html"],
             input=html.encode(text_encoding),
-            capture_output=True,
-            check=True,
+            stderr=subprocess.PIPE,
             creationflags=(
                 subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0  # type: ignore
             ),
             env=process_env if platform.system() == "Windows" else None,
         )
 
-        markdown = result.stdout.decode(text_encoding).strip()
+        markdown = output.decode(text_encoding).strip()
         return markdown
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.decode(text_encoding) if e.stderr else str(e)
@@ -578,11 +577,10 @@ def send_request_to_llm_cli(
 
     # Execute command and capture output.
     try:
-        result = subprocess.run(
+        output = subprocess.check_output(
             command,
             input=cmd_input,
-            capture_output=True,
-            check=True,
+            stderr=subprocess.PIPE,
             creationflags=(
                 subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0  # type: ignore
             ),
@@ -590,7 +588,7 @@ def send_request_to_llm_cli(
         )
         if settings.get("user.model_verbose_notifications"):
             notify("GPT Task Completed")
-        resp = result.stdout.decode(output_encoding).strip()
+        resp = output.decode(output_encoding).strip()
         formatted_resp = strip_markdown(resp)
         return format_message(formatted_resp)
     except subprocess.CalledProcessError as e:
