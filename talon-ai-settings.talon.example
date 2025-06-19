@@ -26,6 +26,9 @@ settings():
     # Path to the markitdown CLI executable for HTML to markdown conversion
     # user.model_markitdown_path = "/path/to/markitdown"
 
+    # Path to the markdown_py CLI executable for markdown to HTML conversion
+    # user.model_markdown_py_path = "/path/to/markdown_py"
+
     # Comma-delimited list of LLM plugins to load. Default is to load all plugins.
     # user.model_llm_plugins = "llm-gpt4all,llm-cluster"
 

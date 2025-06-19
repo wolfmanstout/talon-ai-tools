@@ -185,6 +185,13 @@ mod.setting(
 )
 
 mod.setting(
+    "model_markdown_py_path",
+    type=str,
+    default="markdown_py",
+    desc="Path to the markdown_py CLI executable for markdown to HTML conversion",
+)
+
+mod.setting(
     "model_llm_plugins",
     type=str,
     default="<all>",

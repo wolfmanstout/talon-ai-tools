@@ -338,9 +338,7 @@ class UserActions:
                     clip.set_text(message_text_no_images)
             case "browser":
                 builder = Builder()
-                builder.h1("Talon GPT Result")
-                for line in message_text_no_images.split("\n"):
-                    builder.p(line)
+                builder.model_result(message_text_no_images)
                 builder.render()
             case "textToSpeech":
                 try:

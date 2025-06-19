@@ -2,6 +2,7 @@ import textwrap
 
 from talon import Context, Module, actions, clip, imgui, settings
 
+from .HTMLBuilder import Builder
 from .modelHelpers import GPTState, notify
 
 mod = Module()
@@ -27,6 +28,10 @@ def confirmation_gui(gui: imgui.GUI):
     gui.spacer()
     if gui.button("Paste response"):
         actions.user.confirmation_gui_paste()
+
+    gui.spacer()
+    if gui.button("Show browser"):
+        actions.user.confirmation_gui_browser()
 
     gui.spacer()
     if gui.button("Discard response"):
@@ -69,5 +74,17 @@ class UserActions:
             actions.user.paste(GPTState.text_to_confirm)
             GPTState.last_response = GPTState.text_to_confirm
             GPTState.last_was_pasted = True
+        GPTState.text_to_confirm = ""
+        actions.user.confirmation_gui_close()
+
+    def confirmation_gui_browser():
+        """Show the model output in browser"""
+        if not GPTState.text_to_confirm:
+            notify("GPT error: No text in confirmation GUI to show in browser")
+        else:
+            builder = Builder()
+            builder.model_result(GPTState.text_to_confirm)
+            builder.render()
+            GPTState.last_response = GPTState.text_to_confirm
         GPTState.text_to_confirm = ""
         actions.user.confirmation_gui_close()

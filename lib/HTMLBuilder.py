@@ -2,10 +2,14 @@
 # By using HTML we can create temporary web pages that are accessible to screen readers.
 
 import enum
+import logging
 import os
 import platform
+import subprocess
 import tempfile
 import webbrowser
+
+from talon import settings
 
 
 def get_style():
@@ -105,6 +109,50 @@ class Builder:
 
     def end_table(self):
         self.elements.append("</tbody></table>")
+
+    def model_result(self, message_text: str):
+        """Add model result with markdown processing"""
+        self.h1("Talon GPT Result")
+
+        # Convert markdown to HTML using markdown_py CLI
+        html_content = self._convert_markdown_to_html(message_text)
+        if html_content:
+            # Inject the HTML directly
+            self.elements.append(html_content)
+        else:
+            # Fallback to plain text paragraphs if markdown conversion fails
+            for line in message_text.split("\n"):
+                self.p(line)
+
+    def _convert_markdown_to_html(self, markdown_text: str) -> str | None:
+        """Convert markdown to HTML using markdown_py CLI"""
+        # Configure output encoding similar to markitdown usage
+        process_env = os.environ.copy()
+        if platform.system() == "Windows":
+            process_env["PYTHONUTF8"] = "1"
+        text_encoding = "utf-8"
+
+        try:
+            # Use markdown_py to convert markdown to HTML
+            markdown_py_path: str = settings.get("user.model_markdown_py_path")  # type: ignore
+            html = subprocess.check_output(
+                [markdown_py_path],
+                input=markdown_text,
+                encoding=text_encoding,
+                stderr=subprocess.PIPE,
+                creationflags=(
+                    subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0  # type: ignore
+                ),
+                env=process_env if platform.system() == "Windows" else None,
+            ).strip()
+            return html
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr.strip() if e.stderr else str(e)
+            logging.error(f"Error converting markdown to HTML: {error_msg}")
+            return None
+        except Exception as e:
+            logging.error(f"Error converting markdown to HTML: {str(e)}")
+            return None
 
     def render(self):
         html_content = "\n".join(self.elements)

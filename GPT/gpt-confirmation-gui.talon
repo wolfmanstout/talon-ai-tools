@@ -12,6 +12,7 @@ tag: user.model_window_open
     user.gpt_select_last()
 
 ^copy response$: user.confirmation_gui_copy()
+^show browser$: user.confirmation_gui_browser()
 ^pass response to context$: user.confirmation_gui_pass_context()
 
 # Deny the output of the model and discard it
