@@ -4,7 +4,7 @@
 
 - **Linting**: `ruff format && ruff check --fix && pre-commit run --files` followed by a list of changed files.
 - **Type checking**: `pyright .`
-- **Testing**:
+- **Testing** (this should be done after linting and type checking):
   - Push changes to local Talon user directory with `sync_talon_repo`.
   - Wait a couple seconds for Talon to load the changes.
   - Use `tail /mnt/c/Users/james/AppData/Roaming/talon/talon.log` to view recent logs (adding flags as needed to view more logs).

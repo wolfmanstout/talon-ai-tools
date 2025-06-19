@@ -183,3 +183,10 @@ mod.setting(
     default="markitdown",
     desc="Path to the markitdown CLI executable for HTML to markdown conversion",
 )
+
+mod.setting(
+    "model_llm_plugins",
+    type=str,
+    default="<all>",
+    desc="Comma-delimited list of LLM plugins to load. Use '<all>' to load all plugins, or specify plugins like 'llm-gpt4all,llm-cluster'.",
+)

@@ -26,6 +26,7 @@ class ModelConfig(TypedDict):
     model_id: NotRequired[str]
     system_prompt: NotRequired[str]
     llm_options: NotRequired[dict[str, Any]]
+    llm_plugins: NotRequired[list[str]]
     api_options: NotRequired[dict[str, Any]]
 
 
@@ -574,6 +575,20 @@ def send_request_to_llm_cli(
     # On other platforms, UTF-8 is also the common/expected encoding.
     output_encoding = "utf-8"
 
+    # Handle LLM plugins configuration
+    base_plugins: str = settings.get("user.model_llm_plugins")  # type: ignore
+    model_plugins = config.get("llm_plugins") if config else None
+    env_modified = False
+
+    if base_plugins != "<all>":
+        plugins_list = [p.strip() for p in base_plugins.split(",") if p.strip()]
+        if model_plugins:
+            plugins_list.extend(model_plugins)
+
+        # Set environment variable even if plugins_list is empty (for empty string case)
+        process_env["LLM_LOAD_PLUGINS"] = ",".join(plugins_list)
+        env_modified = True
+
     # Execute command and capture output.
     try:
         resp = subprocess.check_output(
@@ -584,7 +599,11 @@ def send_request_to_llm_cli(
             creationflags=(
                 subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0  # type: ignore
             ),
-            env=process_env if platform.system() == "Windows" else None,
+            env=(
+                process_env
+                if (platform.system() == "Windows" or env_modified)
+                else None
+            ),
         ).strip()
         if settings.get("user.model_verbose_notifications"):
             notify("GPT Task Completed")

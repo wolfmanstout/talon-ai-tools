@@ -20,6 +20,8 @@
         "llm_options": {
             // Enables a model-specific setting, namely, the Gemini search feature, which allows the model to search the web for information.
             "google_search": true
-        }
+        },
+        // List of additional LLM plugins to load for this model (appended to user.model_llm_plugins).
+        "llm_plugins": ["llm-embed", "llm-cluster"]
     }
 ]

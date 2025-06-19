@@ -26,5 +26,8 @@ settings():
     # Path to the markitdown CLI executable for HTML to markdown conversion
     # user.model_markitdown_path = "/path/to/markitdown"
 
+    # Comma-delimited list of LLM plugins to load. Default is to load all plugins.
+    # user.model_llm_plugins = "llm-gpt4all,llm-cluster"
+
 # Use codeium instead of Github Copilot
 # tag(): user.codeium
