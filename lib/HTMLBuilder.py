@@ -125,19 +125,29 @@ class Builder:
                 self.p(line)
 
     def _convert_markdown_to_html(self, markdown_text: str) -> str | None:
-        """Convert markdown to HTML using markdown_py CLI"""
+        """Convert markdown to HTML using markdown-it-py CLI"""
         # Configure output encoding similar to markitdown usage
         process_env = os.environ.copy()
         if platform.system() == "Windows":
             process_env["PYTHONUTF8"] = "1"
         text_encoding = "utf-8"
 
+        # Create a temporary file for markdown input since markdown-it requires file input
+        # On Windows, we need to close the file before another process can read it
+        temp_md_file = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".md", encoding=text_encoding, delete=False
+        )
+        temp_md_path = temp_md_file.name
+
         try:
-            # Use markdown_py to convert markdown to HTML
-            markdown_py_path: str = settings.get("user.model_markdown_py_path")  # type: ignore
+            # Write content and close the file so it can be read by subprocess
+            temp_md_file.write(markdown_text)
+            temp_md_file.close()
+
+            # Use markdown-it-py to convert markdown to HTML
+            markdown_it_py_path: str = settings.get("user.model_markdown_it_py_path")  # type: ignore
             html = subprocess.check_output(
-                [markdown_py_path],
-                input=markdown_text,
+                [markdown_it_py_path, temp_md_path],
                 encoding=text_encoding,
                 stderr=subprocess.PIPE,
                 creationflags=(
@@ -153,6 +163,14 @@ class Builder:
         except Exception as e:
             logging.error(f"Error converting markdown to HTML: {str(e)}")
             return None
+        finally:
+            # Clean up temporary file
+            try:
+                if not temp_md_file.closed:
+                    temp_md_file.close()
+                os.unlink(temp_md_path)
+            except OSError:
+                pass
 
     def render(self):
         html_content = "\n".join(self.elements)

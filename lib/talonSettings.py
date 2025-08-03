@@ -185,10 +185,10 @@ mod.setting(
 )
 
 mod.setting(
-    "model_markdown_py_path",
+    "model_markdown_it_py_path",
     type=str,
-    default="markdown_py",
-    desc="Path to the markdown_py CLI executable for markdown to HTML conversion",
+    default="markdown-it",
+    desc="Path to the markdown-it-py CLI executable for markdown to HTML conversion",
 )
 
 mod.setting(
