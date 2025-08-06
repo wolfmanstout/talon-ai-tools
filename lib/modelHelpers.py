@@ -191,7 +191,7 @@ def fetch_from_clipboard() -> ClipboardContent:
     # Get HTML if available
     mime = clip.mime()
     if mime and mime.html:
-        content.html = mime.html
+        content.html = extract_clip_html(mime.html)
 
     return content
 
@@ -214,7 +214,7 @@ def fetch_from_selection() -> ClipboardContent:
     # Get HTML if available
     try:
         if s.mime() and s.mime().html:
-            content.html = s.mime().html
+            content.html = extract_clip_html(s.mime().html)
     except clip.NoChange:
         pass
 
@@ -280,8 +280,37 @@ def convert_content(
         raise Exception(error_msg)
 
 
+def extract_clip_html(html_data: str) -> str:
+    """Extract HTML content from clipboard, handling Windows metadata"""
+    if not html_data:
+        return ""
+
+    # Windows uses a special HTML clipboard format with headers and offsets
+    if platform.system() == "Windows":
+        # Parse the header to find StartFragment and EndFragment offsets
+        lines = html_data.split("\r\n")
+        start_fragment = None
+        end_fragment = None
+
+        for line in lines:
+            if line.startswith("StartFragment:"):
+                start_fragment = int(line.split(":")[1])
+            elif line.startswith("EndFragment:"):
+                end_fragment = int(line.split(":")[1])
+
+        if start_fragment is None or end_fragment is None:
+            return ""
+
+        # Extract the HTML fragment using the offsets
+        html_fragment = html_data[start_fragment:end_fragment]
+        return html_fragment
+    else:
+        # On Mac and other platforms, HTML mime data is the raw HTML
+        return html_data
+
+
 def convert_html_to_markdown(html: str) -> Optional[str]:
-    """Convert HTML to markdown using markitdown CLI"""
+    """Convert HTML to markdown using markdownify CLI"""
     # Configure output encoding
     process_env = os.environ.copy()
     if platform.system() == "Windows":
@@ -290,9 +319,9 @@ def convert_html_to_markdown(html: str) -> Optional[str]:
     text_encoding = "utf-8"
 
     try:
-        markitdown_path: str = settings.get("user.model_markitdown_path")  # type: ignore
+        markdownify_path: str = settings.get("user.model_markdownify_path")  # type: ignore
         markdown = subprocess.check_output(
-            [markitdown_path, "-x", "html"],
+            [markdownify_path],
             input=html,
             encoding=text_encoding,
             stderr=subprocess.PIPE,

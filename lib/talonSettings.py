@@ -178,10 +178,10 @@ mod.setting(
 )
 
 mod.setting(
-    "model_markitdown_path",
+    "model_markdownify_path",
     type=str,
-    default="markitdown",
-    desc="Path to the markitdown CLI executable for HTML to markdown conversion",
+    default="markdownify",
+    desc="Path to the markdownify CLI executable for HTML to markdown conversion",
 )
 
 mod.setting(

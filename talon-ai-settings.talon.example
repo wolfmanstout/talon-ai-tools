@@ -23,8 +23,8 @@ settings():
     # throttled.
     # user.model_verbose_notifications = false
 
-    # Path to the markitdown CLI executable for HTML to markdown conversion
-    # user.model_markitdown_path = "/path/to/markitdown"
+    # Path to the markdownify CLI executable for HTML to markdown conversion
+    # user.model_markdownify_path = "/path/to/markdownify"
 
     # Path to the markdown-it-py CLI executable for markdown to HTML conversion
     # user.model_markdown_it_py_path = "/path/to/markdown-it"

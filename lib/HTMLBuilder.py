@@ -126,7 +126,6 @@ class Builder:
 
     def _convert_markdown_to_html(self, markdown_text: str) -> str | None:
         """Convert markdown to HTML using markdown-it-py CLI"""
-        # Configure output encoding similar to markitdown usage
         process_env = os.environ.copy()
         if platform.system() == "Windows":
             process_env["PYTHONUTF8"] = "1"
