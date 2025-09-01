@@ -14,8 +14,7 @@ gem fast: gemini-flash-no-thinking
 claude: claude-4-sonnet
 
 # OpenAI
-four o mini: gpt-4o-mini
-four o: gpt-4o
+gpt: gpt-5
 
 # Misc
 echo model: echo
