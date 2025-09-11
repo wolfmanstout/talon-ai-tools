@@ -36,3 +36,7 @@
 - Use module-specific directories for implementation and corresponding .talon files for voice commands
 - .talon files refer to Talon lists using braces and Talon captures using angle brackets. Both should be declared in lib/talonSettings.py. Talon lists should be populated via .talon-list files using `key: value` format.
 - Settings should be declared in lib/talonSettings.py, with an example per setting in talon-ai-settings.talon.example
+
+## Talon documentation
+
+@~/dotfiles/claude/talon.md
