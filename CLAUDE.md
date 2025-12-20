@@ -39,4 +39,4 @@
 
 ## Talon documentation
 
-@~/dotfiles/claude/talon.md
+@~/.claude/talon.md
