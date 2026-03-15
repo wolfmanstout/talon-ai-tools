@@ -4,13 +4,8 @@
 
 - **Linting**: `ruff format && ruff check --fix && pre-commit run --files` followed by a list of changed files.
 - **Type checking**: `pyright .`
-- **Testing** (this should be done after linting and type checking):
-  - Push changes to local Talon user directory with `sync-talon-repo`.
-  - Wait a couple seconds for Talon to load the changes.
-  - Use `tail /mnt/c/Users/james/AppData/Roaming/talon/talon.log` to view recent logs (adding flags as needed to view more logs).
-  - Changed files will show up in logs as `DEBUG [~] c:\path\to\file`, with possible `WARNING` or `ERROR` lines shown afterwards.
-  - The user will need to manually test any changed functionality.
-- **Committing**: Always run `sync-talon-repo` after committing.
+- **Testing** (this should be done after linting and type checking): Deploy changes and check logs (see talon skill for details). The user will need to manually test any changed functionality.
+- **Committing**: Always deploy changes after committing (see talon skill for details).
 
 ## Code Style Guidelines
 
@@ -34,5 +29,5 @@
 
 - This repository integrates Talon Voice with AI tools like OpenAI API and GitHub Copilot
 - Use module-specific directories for implementation and corresponding .talon files for voice commands
-- .talon files refer to Talon lists using braces and Talon captures using angle brackets. Both should be declared in lib/talonSettings.py. Talon lists should be populated via .talon-list files using `key: value` format.
+- Talon lists and captures should be declared in lib/talonSettings.py. Talon lists should be populated via .talon-list files.
 - Settings should be declared in lib/talonSettings.py, with an example per setting in talon-ai-settings.talon.example
