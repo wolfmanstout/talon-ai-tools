@@ -6,7 +6,7 @@ model: model
 
 # Google
 gem pro: gemini-3.1-pro-preview
-gem flash: gemini-flash-latest
+gem flash: gemini-3-flash-preview
 gem search: gemini-flash-search
 gem fast: gemini-flash-no-thinking
 
