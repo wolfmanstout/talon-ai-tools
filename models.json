@@ -1,16 +1,16 @@
 [
     {
         "name": "gemini-flash-search",
-        "model_id": "gemini-3-flash-preview",
+        "model_id": "gemini-flash-latest",
         "llm_options": {
             "google_search": true
         }
     },
     {
         "name": "gemini-flash-no-thinking",
-        "model_id": "gemini-3-flash-preview",
+        "model_id": "gemini-flash-latest",
         "llm_options": {
-            "thinking_level": "minimal"
+            "thinking_budget": 0
         }
     }
 ]
