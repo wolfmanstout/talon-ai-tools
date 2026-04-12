@@ -5,16 +5,16 @@ list: user.model
 model: model
 
 # Google
-gem pro: gemini-3-pro-preview
+gem pro: gemini-3.1-pro-preview
 gem flash: gemini-3-flash-preview
 gem search: gemini-flash-search
 gem fast: gemini-flash-no-thinking
 
 # Anthropic
-claude: claude-4-sonnet
+claude: claude-sonnet-4.6
 
 # OpenAI
-gpt: gpt-5
+gpt: gpt-5.4
 
 # Misc
 echo model: echo
