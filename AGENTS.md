@@ -2,7 +2,7 @@
 
 ## Commands
 
-- **Linting**: `ruff format && ruff check --fix && pre-commit run --files` followed by a list of changed files.
+- **Linting**: `ruff format && ruff check --fix && prek run --files` followed by a list of changed files.
 - **Type checking**: `pyright .`
 - **Testing** (this should be done after linting and type checking): Deploy changes and check logs (see talon skill for details). The user will need to manually test any changed functionality.
 - **Committing**: Always deploy changes after committing (see talon skill for details).
