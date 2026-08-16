@@ -10,7 +10,7 @@ mode: user.dictation_command
 #   Example: `model paste with clip address email to alice instead of bob` -> Rewrites the copied text and pastes it
 #   Example: `model show what is the meaning of life` -> Shows the meaning of life in an overlay
 #   Example: `model and show distill that to a number` -> (Following the previous prompt) shows the distilled meaning of life as a number in an overlay
-#   Example: `four o mini paste make my email more tactful` -> Makes the selected text more tactful using gpt-4o-mini model
+#   Example: `gpt paste make my email more tactful` -> Makes the selected text more tactful using the gpt-5.6-sol model
 {user.model} [{user.modelThread}] {user.modelAction} [with <user.modelSource>] <user.prose>$:
     user.gpt_apply_prompt(prose, model, modelThread or "", modelSource or "", modelAction)
 

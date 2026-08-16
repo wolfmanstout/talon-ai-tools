@@ -6,15 +6,15 @@ Query language models with voice commands. Helpful to automatically generate tex
 
 - See [the list of prompts](lists/staticPrompt.talon-list) for all the prompts that can be used with the `model` command.
 
-- See [the list of available models](lists/model.talon-list) that can be used to specify which model to use directly in the voice command (e.g., "four o mini explain this").
+- See [the list of available models](lists/model.talon-list) that can be used to specify which model to use directly in the voice command (e.g., "gpt explain this").
 
 - See the [examples file](../.docs/usage-examples/examples.md) for gifs that show how to use the commands.
 
 - View the [docs](http://localhost:4321/talon-ai-tools/) for more detailed usage and help
 
-## OpenAI API Pricing
+## API Pricing
 
-The OpenAI API that is used in this repo, through which you make queries to GPT 3.5 (the model used for ChatGPT), is not free. However it is extremely cheap and unless you are frequently processing large amounts of text, it will likely cost less than $1 per month. Most months I have spent less than $0.50
+API usage is billed by the selected model and provider. Review the provider's current pricing and monitor your usage before running high-volume workloads.
 
 ## Configuration
 
@@ -37,9 +37,9 @@ The configuration is automatically reloaded when the file changes, so you don't 
 
 ### Global Settings
 
-| Setting                  | Default                                                                                                                                                                                                                                                            | Notes                                                                                                                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| user.model_default       | `"gpt-4o-mini"`                                                                                                                                                                                                                                                    | The default model to use when no specific model is specified in the command. You can also specify a model directly in the voice command, e.g., "four o mini explain this" |
-| user.model_endpoint      | `"https://api.openai.com/v1/chat/completions"`                                                                                                                                                                                                                     | Any OpenAI compatible endpoint address can be used (Azure, local llamafiles, etc)                                                                                         |
-| user.model_shell_default | `"bash"`                                                                                                                                                                                                                                                           | The default shell for `model shell` commands                                                                                                                              |
-| user.model_system_prompt | `"You are an assistant helping an office worker to be more productive. Output just the response to the request and no additional content. Do not generate any markdown formatting such as backticks for programming languages unless it is explicitly requested."` | The meta-prompt for how to respond to all prompts (can be overridden per-model in models.json)                                                                            |
+| Setting                  | Default                                                                                                                                                                                                                                                            | Notes                                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| user.model_default       | `"gpt-5.6-luna"`                                                                                                                                                                                                                                                   | The efficient default used by the `model` command. You can request the flagship model explicitly, e.g., "gpt explain this" |
+| user.model_endpoint      | `"https://api.openai.com/v1/chat/completions"`                                                                                                                                                                                                                     | Any OpenAI compatible endpoint address can be used (Azure, local llamafiles, etc)                                          |
+| user.model_shell_default | `"bash"`                                                                                                                                                                                                                                                           | The default shell for `model shell` commands                                                                               |
+| user.model_system_prompt | `"You are an assistant helping an office worker to be more productive. Output just the response to the request and no additional content. Do not generate any markdown formatting such as backticks for programming languages unless it is explicitly requested."` | The meta-prompt for how to respond to all prompts (can be overridden per-model in models.json)                             |

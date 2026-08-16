@@ -109,7 +109,7 @@ def modelSimplePrompt(matched_prompt) -> str:
 mod.setting(
     "model_default",
     type=str,
-    default="gpt-4o-mini",
+    default="gpt-5.6-luna",
     desc="The default model to use when no specific model is specified in the command",
 )
 

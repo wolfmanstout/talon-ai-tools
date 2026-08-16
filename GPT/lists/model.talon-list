@@ -6,15 +6,15 @@ model: model
 
 # Google
 gem pro: gemini-3.1-pro-preview
-gem flash: gemini-3.5-flash
+gem flash: gemini-3.7-flash
 gem search: gemini-flash-search
 gem fast: gemini-flash-no-thinking
 
 # Anthropic
-claude: claude-sonnet-4.6
+claude: claude-sonnet-5
 
 # OpenAI
-gpt: gpt-5.4
+gpt: gpt-5.6-sol
 
 # Misc
 echo model: echo

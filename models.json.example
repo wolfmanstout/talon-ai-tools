@@ -3,7 +3,7 @@
 [
     {
         // The name used in user.model_default or the right-hand-side of model.talon-list.
-        "name": "gpt-4o-mini",
+        "name": "gpt-5.6-luna",
         // Additional JSON merged into the OpenAI Chat Completions API request if user.model_endpoint is not "llm".
         "api_options": {
             // The temperature of the model. Higher values make the model more creative.
@@ -11,9 +11,9 @@
         }
     },
     {
-        "name": "gemini-2.0-flash-search",
+        "name": "gemini-flash-search",
         // The model ID used in the LLM CLI tool or the API. If unspecified, defaults to the name.
-        "model_id": "gemini-2.0-flash",
+        "model_id": "gemini-3.7-flash",
         // Model-specific system prompt (overrides user.model_system_prompt).
         "system_prompt": "You are a sassy but helpful assistant.",
         // Options passed to the LLM CLI tool if user.model_endpoint = "llm". Run `llm models --options` to see all options for each model.
