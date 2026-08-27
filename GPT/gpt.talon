@@ -7,8 +7,8 @@ mode: user.dictation_command
 
 # Apply the previous complete prompt with a newly selected model action.
 #   Example: `model paste previous prompt` -> Uses the default model and pastes the result
-#   Example: `gpt show previous prompt` -> Uses the gpt-5.6-sol model and shows the result
-{user.model} [{user.modelThread}] {user.modelAction} previous prompt$:
+#   Example: `gpt show last prompt` -> Uses the gpt-5.6-sol model and shows the result
+{user.model} [{user.modelThread}] {user.modelAction} (previous | last) prompt$:
     user.gpt_apply_previous_prompt(model, modelThread or "", modelAction)
 
 # Runs a model prompt on the selected text or other modelSource and performs modelAction on the output.
