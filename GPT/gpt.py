@@ -78,6 +78,9 @@ mod.tag(
 )
 
 
+last_prompt: Optional[Prompt] = None
+
+
 def gpt_query(
     prompt: Prompt,
     model: str,
@@ -85,9 +88,14 @@ def gpt_query(
     destination: str = "",
 ):
     """Send a prompt to the GPT API and return the response"""
+    global last_prompt
 
     # Reset state before pasting
     GPTState.last_was_pasted = False
+
+    # Store the complete prompt before sending so it remains available if the
+    # request fails. This includes any source content captured for the request.
+    last_prompt = prompt
 
     response = send_request(prompt, model, thread, destination)
     GPTState.last_response = extract_message(response)
@@ -134,6 +142,16 @@ class UserActions:
             model,
             thread,
         ).get("text", "")
+
+    def gpt_apply_previous_prompt(model: str, thread: str, destination: str) -> None:
+        """Apply the previous complete prompt using the requested options."""
+        if last_prompt is None:
+            error = "No previous model prompt"
+            notify(error)
+            raise RuntimeError(error)
+
+        response = gpt_query(last_prompt, model, thread, destination)
+        actions.user.gpt_insert_response(response, destination)
 
     def gpt_start_debug():
         """Enable debug logging"""

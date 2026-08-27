@@ -5,6 +5,12 @@ mode: user.dictation_command
 # Shows the list of available prompts
 {user.model} help$: user.gpt_help()
 
+# Apply the previous complete prompt with a newly selected model action.
+#   Example: `model paste previous prompt` -> Uses the default model and pastes the result
+#   Example: `gpt show previous prompt` -> Uses the gpt-5.6-sol model and shows the result
+{user.model} [{user.modelThread}] {user.modelAction} previous prompt$:
+    user.gpt_apply_previous_prompt(model, modelThread or "", modelAction)
+
 # Runs a model prompt on the selected text or other modelSource and performs modelAction on the output.
 #   Example: `model paste make my email more tactful` -> Makes the selected text more tactful and pastes in place
 #   Example: `model paste with clip address email to alice instead of bob` -> Rewrites the copied text and pastes it
