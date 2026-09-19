@@ -13,7 +13,7 @@
     {
         "name": "gemini-flash-search",
         // The model ID used in the LLM CLI tool or the API. If unspecified, defaults to the name.
-        "model_id": "gemini-3.7-flash",
+        "model_id": "gemini-3.8-flash",
         // Model-specific system prompt (overrides user.model_system_prompt).
         "system_prompt": "You are a sassy but helpful assistant.",
         // Options passed to the LLM CLI tool if user.model_endpoint = "llm". Run `llm models --options` to see all options for each model.
