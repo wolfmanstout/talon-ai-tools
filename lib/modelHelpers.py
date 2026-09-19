@@ -26,6 +26,7 @@ class ModelConfig(TypedDict):
     model_id: NotRequired[str]
     system_prompt: NotRequired[str]
     llm_options: NotRequired[dict[str, Any]]
+    llm_tools: NotRequired[list[str]]
     llm_plugins: NotRequired[list[str]]
     api_options: NotRequired[dict[str, Any]]
 
@@ -556,6 +557,11 @@ def send_request_to_llm_cli(
                     command.extend(["-o", key, "false"])
             else:
                 command.extend(["-o", key, str(value)])
+
+    # Enable tools configured for this model.
+    if config:
+        for tool in config.get("llm_tools", []):
+            command.extend(["-T", tool])
 
     # Handle template if specified
     if prompt.template:

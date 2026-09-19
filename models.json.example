@@ -18,9 +18,10 @@
         "system_prompt": "You are a sassy but helpful assistant.",
         // Options passed to the LLM CLI tool if user.model_endpoint = "llm". Run `llm models --options` to see all options for each model.
         "llm_options": {
-            // Enables a model-specific setting, namely, the Gemini search feature, which allows the model to search the web for information.
-            "google_search": true
+            "temperature": 0.7
         },
+        // Tools enabled with the LLM CLI's -T flag. GoogleSearch lets Gemini search the web.
+        "llm_tools": ["GoogleSearch"],
         // List of additional LLM plugins to load for this model (appended to user.model_llm_plugins).
         "llm_plugins": ["llm-embed", "llm-cluster"]
     }

@@ -2,9 +2,7 @@
     {
         "name": "gemini-flash-search",
         "model_id": "gemini-3.8-flash",
-        "llm_options": {
-            "google_search": true
-        }
+        "llm_tools": ["GoogleSearch"]
     },
     {
         "name": "gemini-flash-no-thinking",
