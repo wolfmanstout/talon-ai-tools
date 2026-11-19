@@ -1,7 +1,3 @@
-mode: command
-mode: user.dictation_command
--
-
 # Shows the list of available prompts
 {user.model} help$: user.gpt_help()
 
